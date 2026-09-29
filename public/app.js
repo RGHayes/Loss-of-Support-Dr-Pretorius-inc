@@ -2287,8 +2287,20 @@
     window.setTimeout(function () {
       var record = buildRecord();
 
-      /* ALLISON-forms-022 — refuse rather than corrupt. */
-      var unsupported = unsupportedCharsIn(record);
+      /* ALLISON-forms-022 — refuse rather than corrupt.
+         CARL-drplos-003: this runs with the busy overlay already up and
+         outside the try that guards the PDF build, so an unexpected throw here
+         would lock the form with no route back and nothing persisted. Any
+         catch that routes through failSend is enough — failSend clears
+         state.sending and hides the overlay. */
+      var unsupported;
+      try {
+        unsupported = unsupportedCharsIn(record);
+      } catch (err) {
+        failSend('The form could not be checked on this device. Please try again, '
+          + 'or telephone the office.');
+        return;
+      }
       if (unsupported.length) {
         var names = unsupported.slice(0, 4).map(function (u) {
           return '\u2022 ' + u.label + '  (' + u.chars + ')';
