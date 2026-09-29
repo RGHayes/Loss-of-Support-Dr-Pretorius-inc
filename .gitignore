@@ -1,0 +1,25 @@
+# macOS
+.DS_Store
+
+# Packaged builds — the deploy comes from git, not from a zip
+*.zip
+
+# Secrets. Nothing here today (the Resend key lives in Netlify environment
+# variables), but this makes sure a local .env can never be committed.
+.env
+.env.*
+!.env.example
+
+# Netlify CLI local state
+.netlify/
+
+# Node, for when a package.json is added later
+node_modules/
+
+# Python bytecode from the local dev server
+__pycache__/
+*.pyc
+
+# Local test output — generated PDFs and saved progress files
+*.pdf
+DrPretorius-loss-of-support-progress*.json

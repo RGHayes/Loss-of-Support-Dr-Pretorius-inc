@@ -1,13 +1,25 @@
-# Loss of Support Form — Savage Jooste & Adams
+# Loss of Support Form — Dr Pretorius Inc
 
-A client intake form for a **loss of support claim**: the dependants of someone
-killed in a road accident fill it in on a phone or a laptop, and it arrives at
-the firm as a single PDF on the Savage Jooste & Adams letterhead.
+A claimant intake form for a **loss of support claim**: the dependants of
+someone killed in a road accident fill it in on a phone or a laptop, and it
+arrives at the practice as a single PDF.
 
-Built on the same engine as the **Accident Information Form**
-(`../sja-accident-form`), which is its sibling and not its parent — the two are
-separate apps, separate repositories and separate Netlify sites. Nothing here
-deploys over that one.
+Built from the **Savage Jooste & Adams loss of support form**
+(`../sja-loss-of-support`), which is its sibling and not its parent — separate
+app, separate repository, separate Netlify site. Nothing here deploys over that
+one, and a progress file from one is refused by name in the other.
+
+**Deliberately carries no logo and no watermark**, the same as the practice's
+**Accident Information Form** (`../Accident-Form-Dr_Pretorius`), whose deep-red
+accent this build shares. Add branding later by following the pattern that was
+removed: the SJA build's `pdf-builder.js` (`prepareAssets`, `renderWatermark`,
+`paintWatermark`, the logo in `drawLetterhead` / `drawRunningHead`) and its
+`styles.css` (`.logo`, `.watermark*`, the `--watermark-*` tokens) show the
+shape.
+
+**Console engine:** `dr-pretorius-loss-of-support`. Set the version on this
+form in the IFTFC console to the ISO date of each deploy that changes
+behaviour.
 
 ---
 
@@ -18,7 +30,7 @@ deploys over that one.
 | `public/index.html` | The shell: header, sidebar, five screens, action bar |
 | `public/styles.css` | The whole look. Design tokens at the top, components below |
 | `public/app.js` | The twenty sections, the state machine, drafts, sending |
-| `public/pdf-builder.js` | The PDF: letterhead, watermark, attachments, footers |
+| `public/pdf-builder.js` | The PDF: letterhead, attachments, footers — no logo |
 | `public/fonts/` | Barlow and Barlow Condensed, served from this site |
 | `public/jspdf.umd.min.js` | jsPDF 2.5.1, vendored — no CDN |
 | `netlify/functions/send-form.js` | The only server-side code |
@@ -41,7 +53,9 @@ One build, one stylesheet, one breakpoint at 900px.
   signature stay full width.
 - Wording follows the device: tap or click, finger or trackpad.
 
-Verified at 375px, 768px and desktop on 2026-09-22.
+Verified at 375px, 768px and desktop on 2026-09-22, on the SJA build this
+was forked from. The layout code is unchanged here; only colour, wording and
+the removal of the logo differ.
 
 ---
 
@@ -72,19 +86,17 @@ Twenty sections in six groups.
 | 19 | Sketch of the scene | Evidence |
 | 20 | Signature and consent | Declaration |
 
-The three in bold are the sections Richard specified. **Sections 05 to 20 are a
-first draft awaiting the firm's own list** — they were carried across from the
-accident form and re-pointed at the deceased where the question plainly belongs
-to them (schooling, work history, medical care). Changing them means editing
-`SECTIONS` in `app.js` and nothing else.
+The three in bold are the sections Richard specified for the sibling build.
+**Every section here is inherited as-is and is awaiting the practice's own
+list** — Richard has said he will work through which questions belong and which
+do not. Changing them means editing `SECTIONS` in `app.js` and nothing else.
 
-### Three questions still to come from the firm
+### Questions still to come from the practice
 
 Section 04 asks whether the person was a **pedestrian or cyclist** or a
-**driver or motorcyclist**, and branches. The branch is final. The questions
-*inside* each branch are marked `PROVISIONAL` in `app.js` and are meant to be
-replaced with the firm's list. They sit in two clearly-marked blocks; nothing
-else in the file refers to them.
+**driver or motorcyclist**, and branches. The branch is settled. The questions
+*inside* each branch are marked `PROVISIONAL` in `app.js`. They sit in two
+clearly-marked blocks; nothing else in the file refers to them.
 
 ### The form descriptor language
 
@@ -132,9 +144,9 @@ In both cases `GOVERNS[key]` would be set and the callback would simply never
 fire, so the dependent field would never appear and nothing would report an
 error. Carl's F-5, 2026-09-22.
 
-**Headings and alerts are stored in sentence case and capitalised by CSS.** The
-firm asked for capitals; typing them as capitals makes some screen readers
-spell them out letter by letter. `text-transform` gives the reader words and
+**Headings and alerts are stored in sentence case and capitalised by CSS.**
+Typing them as capitals makes some screen readers spell them out letter by
+letter. `text-transform` gives the reader words and
 the claimant capitals. Do not "fix" this by capitalising the strings.
 
 ### Two document sets, not one
@@ -189,17 +201,18 @@ at 4 MB.
 - Save and resume is a JSON file the claimant downloads to their own device and
   loads back in later. It never touches a server.
 - On send, the browser builds the PDF itself and posts only that finished
-  document. The firm's server never sees the answers as fields it could store.
+  document. The server never sees the answers as fields it could store.
 - The function writes nothing to disk, to a database or to the log. The only
-  copy of a submission is the email in the firm's inbox.
+  copy of a submission is the email in the practice's inbox.
 
 A saved progress file is treated as untrusted input. Only the known field keys
 are restored, choices must be one of the options the form offers, images must
 be real image data, and anything else in the file is discarded.
 
-**A progress file from the accident form cannot be loaded here**, and vice
-versa: the `app` field is `sja-loss-of-support` and a mismatch is refused by
-name rather than half-restored into the wrong boxes.
+**A progress file from any other form cannot be loaded here**, and vice versa:
+the `app` field is `dr-pretorius-loss-of-support` and a mismatch is refused by
+name rather than half-restored into the wrong boxes. That covers the practice's
+own accident form and both SJA forms.
 
 ---
 
@@ -215,21 +228,40 @@ name rather than half-restored into the wrong boxes.
    | `RESEND_API_KEY` | yes | The Resend API key |
    | `REPORT_TO_EMAIL` | yes | Where forms go. Comma-separate for several |
    | `RECIPIENT_DOMAINS` | strongly recommended | The domain floor — see below |
-   | `REPORT_FROM_EMAIL` | no | Overrides the sender. Defaults to `SJA Loss of Support Form <noreply@iftfc.com>` |
+   | `REPORT_FROM_EMAIL` | **yes** | The sender. Must be on a domain verified in Resend — today that is `iftfc.co.za`. There is no fallback: the function refuses to start without it, on purpose (see below) |
    | `IFTFC_CONSOLE_URL` | no | The master console, if it is being used |
    | `IFTFC_CONFIG_KEY` | no | The console's `config:read` key |
    | `IFTFC_EVENT_KEY` | no | The console's `event:write` key |
-   | `IFTFC_FORM_SLUG` | no | Defaults to `loss-of-support` |
+   | `IFTFC_FORM_SLUG` | no | Defaults to `dr-pretorius-loss-of-support` |
 
-3. Redeploy.
+3. Redeploy. **Netlify environment variables only take effect on a rebuild** —
+   saving them in the dashboard changes nothing until the site builds again. If
+   the live endpoint keeps returning an old value, force a build with
+   `git commit --allow-empty -m "rebuild"` before concluding the value is
+   wrong.
+
+**Suggested values for this site**, matching the practice's accident form:
+
+| Variable | Value |
+| --- | --- |
+| `REPORT_TO_EMAIL` | `richard@iftfc.co.za,richardh@drpretoriusinc.co.za,admin@drpretoriusinc.co.za` |
+| `RECIPIENT_DOMAINS` | `iftfc.co.za,drpretoriusinc.co.za` |
+| `REPORT_FROM_EMAIL` | an address on `iftfc.co.za` — the only domain verified in Resend |
+
+**`RECIPIENT_DOMAINS` must never contain `iftfc.com`.** That was the sender
+domain, it has been retired, and putting a sender domain on the floor is what
+lets the sender address through as a recipient.
 
 **`REPORT_TO_EMAIL` is a list, and the function sends to the one address the
-claimant picked from it.** It is an allowlist, not a distribution list.
+claimant picked from it.** It is an allowlist, not a distribution list. With
+**exactly one** entry, `openRecipientDialog()` skips the picker and submits
+straight away — so "it did not ask me who to send to" is a symptom of a
+one-entry allowlist, not a broken dialog.
 
 **Set `RECIPIENT_DOMAINS`.** It is the floor the function enforces itself, and
 the reason recipients held in the console's database are acceptable at all: the
-worst a compromised console can do is move a form from one mailbox at the firm
-to another at the same firm.
+worst a compromised console can do is move a form from one mailbox at the
+practice to another at the same practice.
 
 ### After every deploy, check the form can actually send
 
@@ -240,7 +272,7 @@ variables are not set. The claimant finds out after filling in twenty sections.
 One command tells you:
 
 ```bash
-curl -s https://loss-of-support-form-sja.iftfc.co.za/api/form-recipients
+curl -s https://<this-site>/api/form-recipients
 ```
 
 **Read the `diagnostic` field, not the array length.** If `diagnostic` is
@@ -264,12 +296,12 @@ The three faults it tells apart, because they need different fixes:
 | --- | --- |
 | `REPORT_TO_EMAIL is not set` | Add it |
 | `nothing in it parsed as an email address` | Commas only — no quotation marks, semicolons or line breaks |
-| `RECIPIENT_DOMAINS excluded every one of them` | Set it to the domains **you send to**, not the client firm's |
+| `RECIPIENT_DOMAINS excluded every one of them` | Set it to the domains **you send to**, not the practice's |
 | `RESEND_API_KEY is not set` | Add it; the list is already fine |
 
-(Allison's A-0, 2026-09-22 — which is exactly what the first deploy did — and
-the diagnostic added 2026-09-25 after the *second* deploy did it again for a
-different reason.)
+(Inherited from the SJA build, where Allison's A-0 on 2026-09-22 was exactly
+what the first deploy did, and the diagnostic was added on 2026-09-25 after the
+*second* deploy did it again for a different reason.)
 
 **Do not drag-and-drop deploy this site.** A drag-and-drop deploy skips
 Netlify's bundler, and the functions are then listed but return 404 for every
@@ -284,14 +316,15 @@ see, and never logs the value.
 
 `SHOW_DEMO_BUTTON` is **`true`**, so the "Generate Example Report" tab appears
 on the deployed site, and the passcode `2190` is readable in the page source.
-This matches the accident form and is deliberate, so the firm can be shown a
-filled form from the real URL.
+This matches the practice's accident form and is deliberate, so the practice
+can be shown a filled form from the real URL. **It must go back to
+`'localhost'` before a real claimant gets the link.**
 
 State the cost plainly rather than pretending it is not there:
 
 - anyone who reads the page source has the passcode, and can post a fabricated
-  intake form to the firm — rate-limited to 10 per IP per hour, and only ever
-  to an allowlisted address;
+  intake form to the practice — rate-limited to 10 per IP per hour, and only
+  ever to an allowlisted address;
 - the docked button lies across the right-hand edge where the Remove buttons of
   a repeatable entry sit, which is why `body.has-demo` moves phone content 34px
   clear of it.
@@ -314,7 +347,7 @@ submission down.
 
 | Variable | Effect |
 | --- | --- |
-| `PORT` | Defaults to 8757 |
+| `PORT` | Defaults to 8758, so this can run alongside the sibling forms |
 | `DEV_SEND_MODE` | `ok` (default), `reject`, `down` |
 | `DEV_PAUSED=1` | Exercises the paused-form branch |
 | `DEV_RECIPIENTS` | Overrides the recipient menu |
@@ -327,12 +360,41 @@ submission down.
 These are not code, and none of them can be guessed.
 
 1. **The `[SQUARE BRACKET]` placeholders in `privacy.html` and `terms.html`** —
-   the firm's registered name, physical address, telephone number, POPIA
+   the practice's registered name, physical address, telephone number, POPIA
    Information Officer and file-retention period. A live form collecting
-   identity numbers and cause-of-death data must not carry placeholders.
-2. **Sections 05–20 are a first draft** awaiting the firm's own list.
+   identity numbers and cause-of-death data must not carry placeholders, and
+   the pages currently show their own "before this page goes live" warning box
+   under the practice's name. Same item is open on the practice's accident form
+   and on both SJA forms.
+2. **The questions themselves** — every section is inherited from the SJA build
+   and awaits the practice's own list. Richard has said he will work through
+   this.
 3. **The two branch question sets in section 04**, marked `PROVISIONAL`.
 4. **Confirm the POPIA paragraph in privacy.html section 2A** — the one saying
    the Act protects the information of a *living* person, so the deceased's
-   details fall outside it. That is what the Act says; whether the firm wants
-   to say it is the firm's call.
+   details fall outside it. That is what the Act says; whether the practice
+   wants to say it is the practice's call.
+5. **No domain verified in Resend for the practice**, so mail sends from an
+   `iftfc.co.za` address rather than from `drpretoriusinc.co.za`.
+6. **Register the engine in the IFTFC console** —
+   `dr-pretorius-loss-of-support`, version = the deploy date.
+
+---
+
+## What differs from the SJA loss of support build
+
+Everything below is the complete list; the form logic, the sections, the PDF
+layout and the security posture are otherwise byte-for-byte the same code.
+
+| Area | Change |
+| --- | --- |
+| Accent | Steel blue `#1B5397` → deep red `#971B30`, the full ramp, matching the practice's accident form |
+| Logo | `sja-logo.jpg` deleted; the header `<img class="logo">`, the review-screen watermark and the PDF's logo and watermark all removed |
+| Icons | The red crosshair `favicon.svg` / `favicon-32.png` / `apple-touch-icon.png` from the practice's accident form |
+| Wording | "the firm" / "your attorney" → "the practice" / "Dr Pretorius Inc"; a doctor–patient disclaimer rather than an attorney–client one; kicker "Client intake" → "Claimant intake" |
+| Purpose | "assess and administer a claim" → "prepare a report in connection with a claim" throughout, including the PDF declaration and both legal pages |
+| PDF global | `window.SJALossOfSupportPDF` → `window.DrPretoriusLossOfSupportPDF` |
+| Draft identity | `DRAFT_APP_ID` `dr-pretorius-loss-of-support`, file `DrPretorius-loss-of-support-progress.json` |
+| Footer | `Dr Pretorius Inc · Confidential · Contains medical information` |
+| `IFTFC_FORM_SLUG` | Default is now the **same literal in all three places it is read**. On the SJA build `form-recipients.js` still says `loss-of-support` while `send-form.js` says `loss-of-support-form` — worth fixing there |
+| `serve.py` | `DEV_SAVE_PDF` writes next to the script instead of reaching back out and into a hard-coded folder name; default port 8758 |

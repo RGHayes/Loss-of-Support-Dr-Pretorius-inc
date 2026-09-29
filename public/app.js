@@ -1,5 +1,5 @@
 /* ============================================================================
-   Savage Jooste & Adams — Loss of Support Form
+   Dr Pretorius Inc — Loss of Support Form
 
    The whole form lives in this file. Nothing is written to localStorage,
    sessionStorage, cookies or IndexedDB: answers exist only in this page's
@@ -10,8 +10,8 @@
    which carries the finished PDF. The content security policy in _headers
    enforces that — connect-src is 'self' and nothing else.
 
-   Built on the engine proved by the Accident Information Form, with three
-   things this document needs that that one did not:
+   Built on the engine proved by the practice's Accident Information Form,
+   with three things this document needs that that one did not:
 
      · every question is about one of THREE people — the person filling the
        form in, the deceased, and each dependant — so the wording of every
@@ -32,11 +32,11 @@
        true         shows it everywhere, including the deployed site
        false        never shows it
 
-     CURRENTLY true, at Richard's request, matching the accident form: the
-     deployed site can then be demonstrated to the firm from its real URL.
-     The cost is stated plainly in the README — anyone who reads the page
-     source has the passcode, and can post a fabricated form to the firm
-     (rate-limited, and only ever to an allowlisted address). */
+     CURRENTLY true, at Richard's request, matching the practice's accident
+     form: the deployed site can then be demonstrated to the practice from its
+     real URL. The cost is stated plainly in the README — anyone who reads the
+     page source has the passcode, and can post a fabricated form to the
+     practice (rate-limited, and only ever to an allowlisted address). */
   var SHOW_DEMO_BUTTON = true;
   var DEMO_PASSCODE = '2190';
 
@@ -55,8 +55,8 @@
      saved against the old questions is refused by name rather than being
      half-restored into the wrong boxes. */
   var DRAFT_VERSION = 1;
-  var DRAFT_APP_ID = 'sja-loss-of-support';
-  var DRAFT_FILENAME = 'SJA-loss-of-support-progress.json';
+  var DRAFT_APP_ID = 'dr-pretorius-loss-of-support';
+  var DRAFT_FILENAME = 'DrPretorius-loss-of-support-progress.json';
 
   /* Netlify runs synchronous functions with a 6 MB request limit and base64
      inflates by a third, so the PDF itself has to stay well under that. */
@@ -104,7 +104,7 @@
      photographs because they are a different kind of thing: they are read, so
      they are compressed less and printed larger.
 
-     A loss of support claim turns on documents the firm has to see, which is
+     A loss of support claim turns on documents the practice has to see, which is
      why there are two sets here where the accident form had one. Slot ids are
      unique across every set, because they share one store. */
   var DOC_SETS = {
@@ -146,7 +146,7 @@
 
   /* The whole list rather than a short one plus "Other". A native select is
      a scrolling picker on a phone, so length costs nothing there, and it
-     saves the firm having to interpret free text on a document that has to
+     saves the practice having to interpret free text on a document that has to
      match a passport. South Africa and its neighbours are lifted to the top
      because that is who fills this form in. */
   var COUNTRIES = ['South Africa',
@@ -287,7 +287,7 @@
        Richard's third change. The branch itself is final; the questions
        INSIDE each branch are PROVISIONAL — they are the ones an RAF file
        usually needs, put here so the branch can be seen working, and they are
-       meant to be replaced with the firm's own list. Replacing them is a
+       meant to be replaced with the practice's own list. Replacing them is a
        matter of editing the two blocks below; nothing else refers to them. */
     { id: 'involvement', g: 'The accident', n: 'How the deceased was involved', h: 'How the person who was injured or died came to be in the accident. The questions that follow change with your answer.', f: [
       { k: 'roadUser', l: 'Was the person injured or deceased a pedestrian or cyclist, or a driver or motorcyclist?', t: 'r', req: 1, wide: 1,
@@ -454,7 +454,7 @@
       { k: 'deathRegistered', l: 'Has the death been registered at Home Affairs?', t: 'r', wide: 1, o: ['Yes', 'No', 'In progress'] } ] },
 
     /* ── 15 ─ funeral ──────────────────────────────────────────────────── */
-    { id: 'funeral', g: 'Support and loss', n: 'Funeral and related expenses', h: 'What the funeral cost and who paid for it. Keep the receipts — the firm will ask for them.', f: [
+    { id: 'funeral', g: 'Support and loss', n: 'Funeral and related expenses', h: 'What the funeral cost and who paid for it. Keep the receipts — the practice will ask for them.', f: [
       { k: 'funeralParlour', l: 'Funeral parlour or undertaker', t: 't', ph: 'e.g. Doves, Pretoria North' },
       { k: 'funeralDate', l: 'Date of the funeral', t: 't', ph: 'YYYY/MM/DD', im: 'numeric', ns: 1 },
       { k: 'funeralType', l: 'Burial or cremation?', t: 'r', o: ['Burial', 'Cremation', 'Other'] },
@@ -1286,7 +1286,7 @@
        anyone working from the keyboard alone, and awkward for someone filling
        this in on a borrowed phone. Typing the name is accepted as an
        electronic signature, and the PDF says plainly that it was typed
-       rather than drawn, so the firm knows which it got. */
+       rather than drawn, so the practice knows which it got. */
     if (!isSketch) {
       var alt = el('div', 'sign-alt');
       alt.appendChild(el('div', 'sign-alt-label', 'Or type your full name instead of signing'));
@@ -1366,7 +1366,7 @@
     $('sectionTitle').textContent = sec.n;
     $('sectionHelp').textContent = sec.h;
 
-    /* The firm asked for this line in capitals. It is stored in sentence case
+    /* This line is drawn in capitals. It is stored in sentence case
        and capitalised by the stylesheet, so a screen reader reads it as words
        rather than spelling it out. */
     var alert = $('sectionAlert');
@@ -1962,7 +1962,7 @@
   function openRecipientDialog() {
     if (state.sending || !state.sendAck) return;
 
-    /* The form was paused while this page was open. Say so in the firm's own
+    /* The form was paused while this page was open. Say so in the operator's own
        words rather than letting the claimant build a PDF and be refused. */
     if (state.paused) {
       failSend(state.pausedMessage
@@ -2001,7 +2001,7 @@
       var record = buildRecord();
       var doc, base64;
       try {
-        doc = window.SJALossOfSupportPDF.build(record);
+        doc = window.DrPretoriusLossOfSupportPDF.build(record);
         base64 = doc.output('datauristring').split(',')[1];
       } catch (err) {
         failSend('The PDF could not be created on this device. Please try again, or use a different browser.');
@@ -2015,7 +2015,7 @@
       }
 
       lastPdf = { doc: doc, filename: pdfFilename(record) };
-      showBusy('Sending to Savage Jooste & Adams', 'Please keep this page open until it is done.');
+      showBusy('Sending to Dr Pretorius Inc', 'Please keep this page open until it is done.');
 
       var payload = {
         firstName: record.values.firstName,

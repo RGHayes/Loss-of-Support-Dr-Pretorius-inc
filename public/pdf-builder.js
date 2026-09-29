@@ -1,11 +1,12 @@
 /* ============================================================================
-   Builds the Loss of Support PDF that goes to Savage Jooste & Adams.
+   Builds the Loss of Support PDF that goes to Dr Pretorius Inc.
 
-   A4 portrait, the firm's letterhead on page one, a compact running head on
-   the pages after it, the logo watermark on every page, and a confidential
-   footer with page numbers. The certificates, the accident report, the
-   photographs, the scene sketch and the signature are appended as the closing
-   pages, each set under its own heading.
+   A4 portrait, a plain letterhead on page one, a compact running head on the
+   pages after it, and a confidential footer with page numbers. The
+   certificates, the accident report, the photographs, the scene sketch and the
+   signature are appended as the closing pages, each set under its own heading.
+   Deliberately no logo and no watermark — this build carries no branding, the
+   same as the practice's accident information form.
 
    Everything happens in the browser. The answers are never sent anywhere as
    structured data — only this finished document is.
@@ -22,9 +23,9 @@
          (9.2)         addImage / html / addFont given a filesystem PATH.
                        Node.js only. jsPDF is loaded in the browser here and
                        nowhere else — the Netlify functions never touch it.
-                       Every addImage argument below is a canvas data URL, a
+                       Every addImage argument below is a canvas data URL or a
                        data URL already validated against IMAGE_DATA_RE in
-                       app.js, or the same-origin logo element. Never a path.
+                       app.js. Never a path.
 
        CVE-2026-31938  HTML injection via the OPTIONS argument of output(),
          (9.6)         in the new-window paths. app.js calls
@@ -62,51 +63,10 @@
   var INK = [29, 31, 32];
   var GREY = [122, 122, 125];
   var MID = [93, 93, 96];
-  var ACCENT = [27, 83, 151];
+  var ACCENT = [151, 27, 48];
   var HAIRLINE = [205, 207, 209];
 
-  var FOOTER_TEXT = 'Savage Jooste & Adams Inc.  ·  Confidential  ·  Attorney–client privileged';
-
-  /* The logo, and the full-page watermark derived from it, are prepared once
-     when the page loads so that building the PDF stays synchronous. */
-  var logoImg = null;
-  var logoRatio = 800 / 131;
-  var watermark = null;
-
-  function prepareAssets() {
-    var img = new Image();
-    img.onload = function () {
-      logoImg = img;
-      logoRatio = img.width / img.height;
-      watermark = renderWatermark(img);
-    };
-    img.src = 'sja-logo.jpg';
-  }
-
-  /* A full-page, white-ground JPEG carrying the logo rotated and faded back.
-     Drawn first on every page, so the content always sits over it. */
-  function renderWatermark(img) {
-    try {
-      var w = 900;
-      var h = Math.round(w * (PAGE_H / PAGE_W));
-      var canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
-      var ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, w, h);
-
-      var markW = w * 1.12;
-      var markH = markW / (img.width / img.height);
-      ctx.translate(w / 2, h / 2);
-      ctx.rotate(-24 * Math.PI / 180);
-      ctx.globalAlpha = 0.13;
-      ctx.drawImage(img, -markW / 2, -markH / 2, markW, markH);
-      return canvas.toDataURL('image/jpeg', 0.72);
-    } catch (err) {
-      return null;
-    }
-  }
+  var FOOTER_TEXT = 'Dr Pretorius Inc  ·  Confidential  ·  Contains medical information';
 
   /* ── Small drawing helpers ─────────────────────────────────────────── */
   function setColor(doc, rgb) { doc.setTextColor(rgb[0], rgb[1], rgb[2]); }
@@ -134,13 +94,13 @@
     var doc = new jsPDFCtor({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
     doc.setProperties({
       title: 'Loss of Support Form',
-      subject: 'Client intake — Savage Jooste & Adams',
-      creator: 'Savage Jooste & Adams loss of support form'
+      subject: 'Loss of support intake — Dr Pretorius Inc',
+      creator: 'Dr Pretorius Inc loss of support form'
     });
 
     var v = record.values;
     /* The deceased names the file, not the person who filled it in: that is
-       how the firm, the Fund and the court all refer to the matter. The
+       how the practice, the Fund and the court all refer to the matter. The
        claimant is shown on the line beneath. */
     var deceased = [v.decFirstName, v.decSurname].filter(Boolean).join(' ');
     var claimant = [v.firstName, v.surname].filter(Boolean).join(' ');
@@ -154,25 +114,11 @@
 
     var state = { y: 0, page: 0 };
 
-    function paintWatermark() {
-      if (!watermark) return;
-      try {
-        doc.addImage(watermark, 'JPEG', 0, 0, PAGE_W, PAGE_H, 'sja-watermark', 'FAST');
-      } catch (err) { /* a missing watermark must never stop the form */ }
-    }
-
     function drawLetterhead() {
-      var logoW = 46;
-      var logoH = logoW / logoRatio;
-      if (logoImg) {
-        try { doc.addImage(logoImg, 'JPEG', PAGE_W - MR - logoW, 14, logoW, logoH, 'sja-logo', 'FAST'); }
-        catch (err) { /* carry on without it */ }
-      }
-
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(7);
       setColor(doc, ACCENT);
-      doc.text('CLIENT INTAKE', ML, 18, { charSpace: 0.6 });
+      doc.text('CLAIMANT INTAKE', ML, 18, { charSpace: 0.6 });
 
       doc.setFontSize(17);
       setColor(doc, INK);
@@ -189,12 +135,6 @@
     }
 
     function drawRunningHead() {
-      var logoW = 30;
-      var logoH = logoW / logoRatio;
-      if (logoImg) {
-        try { doc.addImage(logoImg, 'JPEG', PAGE_W - MR - logoW, 12, logoW, logoH, 'sja-logo', 'FAST'); }
-        catch (err) { /* carry on without it */ }
-      }
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8.5);
       setColor(doc, INK);
@@ -210,7 +150,6 @@
     function newPage() {
       state.page += 1;
       if (state.page > 1) doc.addPage();
-      paintWatermark();
       if (state.page === 1) drawLetterhead(); else drawRunningHead();
     }
 
@@ -399,8 +338,8 @@
     doc.setFontSize(9);
     setColor(doc, INK);
     var declaration = 'I confirm that the information given in this form is true and correct to the best of my knowledge, '
-      + 'and that it is supplied freely and voluntarily to Savage Jooste & Adams for the purpose of assessing and '
-      + 'administering a claim for loss of support arising from the death of the person named above. '
+      + 'and that it is supplied freely and voluntarily to Dr Pretorius Inc for the purpose of preparing a '
+      + 'report in connection with a claim for loss of support arising from the death of the person named above. '
       + 'I confirm that every person who depended on the deceased for support has been listed in this form.';
     doc.splitTextToSize(declaration, CW).forEach(function (line) {
       doc.text(line, ML, state.y);
@@ -529,8 +468,5 @@
     return doc;
   }
 
-  window.SJALossOfSupportPDF = { build: build };
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', prepareAssets);
-  else prepareAssets();
+  window.DrPretoriusLossOfSupportPDF = { build: build };
 })();

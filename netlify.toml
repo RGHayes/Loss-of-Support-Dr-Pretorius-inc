@@ -1,4 +1,4 @@
-# Netlify configuration — Loss of Support Form.
+# Netlify configuration — Loss of Support Form, Dr Pretorius Inc.
 #
 # The functions directory deliberately sits OUTSIDE the publish directory. If it
 # were inside, Netlify would serve send-form.js as a static file instead of

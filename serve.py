@@ -9,7 +9,7 @@ Not used in production — Netlify serves the static files itself.
     python3 serve.py            # then open the address it prints
 
 The port comes from the PORT environment variable when one is set, so several
-of these can run side by side without colliding. It falls back to 8757.
+of these can run side by side without colliding. It falls back to 8758, so it can run alongside the sibling forms.
 
 Set DEV_SEND_MODE to 'ok' (default), 'reject' or 'down' to try each branch of
 the send screen. It never sends real email and never writes a submission down.
@@ -19,7 +19,7 @@ import json
 import os
 import socketserver
 
-PORT = int(os.environ.get('PORT') or 8757)
+PORT = int(os.environ.get('PORT') or 8758)
 
 # Serve the directory Netlify publishes, so local and production match.
 os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'public'))
@@ -74,9 +74,13 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
                             'email': email,
                         })
             else:
+                # Mirrors the practice's accident form. iftfc.com is NOT here
+                # on purpose: that domain was retired on 2026-09-29, and it was
+                # the SENDER domain — never a recipient.
                 recipients = [
                     {'label': 'IFTFC', 'email': 'richard@iftfc.co.za'},
-                    {'label': 'Admin Test', 'email': 'richard@iftfc.com'},
+                    {'label': 'Dr Pretorius Inc - Richard H', 'email': 'richardh@drpretoriusinc.co.za'},
+                    {'label': 'Dr Pretorius Inc - Admin', 'email': 'admin@drpretoriusinc.co.za'},
                 ]
 
             paused = os.environ.get('DEV_PAUSED') == '1'
@@ -84,7 +88,7 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
                 'recipients': recipients,
                 'paused': paused,
                 'pausedMessage': ('This form is temporarily unavailable. '
-                                  'Please telephone the office on 012 452 8200.') if paused else '',
+                                  'Please telephone the practice.') if paused else '',
                 'source': 'dev',
             }).encode()
             self.send_response(200)
@@ -101,11 +105,11 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(404)
             return
 
-        # A paused form refuses before any work is done, in the firm's words.
+        # A paused form refuses before any work is done, in the operator's words.
         if os.environ.get('DEV_PAUSED') == '1':
             body = json.dumps({
                 'error': 'This form is temporarily unavailable. '
-                         'Please telephone the office on 012 452 8200.',
+                         'Please telephone the practice.',
                 'code': 'PAUSED',
             }).encode()
             self.send_response(503)
@@ -144,8 +148,11 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
             status, body = 200, b'{"ok":true}'
 
         if DEV_SAVE_PDF and status == 200:
-            out = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                               'sja-loss-of-support', 'dev-last-form.pdf')
+            # Next to this script, not via a hard-coded folder name — the
+            # sibling build reached back out and in by name, which broke the
+            # moment the folder was renamed.
+            out = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               'dev-last-form.pdf')
             with open(out, 'wb') as fh:
                 fh.write(base64.b64decode(pdf))
             print(f'[dev] wrote {out}')

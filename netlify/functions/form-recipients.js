@@ -112,7 +112,7 @@ function diagnose(rawTo, parsedCount, afterFloorCount, floorCount) {
       problems.push('REPORT_TO_EMAIL is set and its addresses are valid, but '
         + 'RECIPIENT_DOMAINS excluded every one of them. RECIPIENT_DOMAINS must '
         + 'list the domains of the addresses you actually send to — the part '
-        + 'after the @ — not the client firm\u2019s domain.');
+        + 'after the @ — not the client practice\u2019s domain.');
     } else {
       problems.push('REPORT_TO_EMAIL produced no usable address.');
     }
@@ -120,7 +120,7 @@ function diagnose(rawTo, parsedCount, afterFloorCount, floorCount) {
 
   /* The floor removed SOME addresses but not all, so the menu still looks
      healthy and nothing anywhere says an address went missing. That is the
-     failure the Dr Pretorius README warns about — "looks like nothing at all"
+     failure this project's README warns about — "looks like nothing at all"
      — and it is how a wrong RECIPIENT_DOMAINS hides its own effect: you set
      three recipients, you see two, and there is no reason given.
 
@@ -171,7 +171,9 @@ exports.handler = async (event) => {
   if (cache && Date.now() - cache.at < CACHE_MS) return reply(200, cache.value);
 
   try {
-    const slug = String(process.env.IFTFC_FORM_SLUG || 'loss-of-support');
+    /* Must be the same literal as the two in send-form.js — see the note at
+       reportEvent() there for what drifting them apart costs. */
+    const slug = String(process.env.IFTFC_FORM_SLUG || 'dr-pretorius-loss-of-support');
     const res = await withTimeout(fetch(
       consoleUrl + '/api/form-config?form=' + encodeURIComponent(slug),
       { headers: { Authorization: 'Bearer ' + configKey, Accept: 'application/json' } }

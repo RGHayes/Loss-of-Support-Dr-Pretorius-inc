@@ -13,7 +13,7 @@
  * people no matter what the browser sends.
  *
  * Nothing is written to disk, to a database or to the log. The only trace a
- * submission leaves is the email itself, in the firm's inbox.
+ * submission leaves is the email itself, in the practice's inbox.
  *
  * ── WHERE THE ALLOWLIST COMES FROM ────────────────────────────────────────
  * Two sources, and the safe one always wins.
@@ -34,7 +34,7 @@
  * acceptable at all. Every address, wherever it came from, must be on one of
  * those domains or it is refused here. Set it in Netlify, which the console
  * has no access to. The worst a compromised console can then do is move a
- * form from one mailbox at the firm to another mailbox at the same firm — not
+ * form from one mailbox at the practice to another at the same practice — not
  * redirect a claimant's privileged file to a stranger.
  *
  * Environment variables (Netlify → Site configuration → Environment variables,
@@ -44,10 +44,10 @@
  *   RECIPIENT_DOMAINS   strongly recommended — the domain floor, comma
  *                                 separated. THE DOMAINS OF THE ADDRESSES YOU
  *                                 ACTUALLY SEND TO — the part after the @ in
- *                                 REPORT_TO_EMAIL — not the client firm's
+ *                                 REPORT_TO_EMAIL — not the client practice's
  *                                 domain. Sending to richard@iftfc.co.za means
  *                                 "iftfc.co.za", even though the form is for
- *                                 Savage Jooste & Adams. Get this wrong and the
+ *                                 Dr Pretorius Inc. Get this wrong and the
  *                                 floor silently excludes every recipient and
  *                                 the form goes live unable to send.
  *                                 When blank the floor is off and the console's
@@ -57,7 +57,11 @@
  *   IFTFC_CONSOLE_URL   optional — e.g. https://iftfc-console.netlify.app
  *   IFTFC_CONFIG_KEY    optional — the console's config:read key
  *   IFTFC_EVENT_KEY     optional — the console's event:write key
- *   IFTFC_FORM_SLUG     optional — defaults to "loss-of-support"
+ *   IFTFC_FORM_SLUG     optional — defaults to "dr-pretorius-loss-of-support".
+ *                                 The same literal in all three places it is
+ *                                 read (here twice, and in
+ *                                 form-recipients.js) — see the note at
+ *                                 reportEvent().
  *
  * With none of the IFTFC_* variables set, this function behaves exactly as it
  * did before the console existed.
@@ -267,7 +271,7 @@ async function loadSettings() {
   }
 
   try {
-    const slug = String(process.env.IFTFC_FORM_SLUG || 'loss-of-support-form');
+    const slug = String(process.env.IFTFC_FORM_SLUG || 'dr-pretorius-loss-of-support');
     const res = await withTimeout(fetch(
       consoleUrl + '/api/form-config?form=' + encodeURIComponent(slug),
       { headers: { Authorization: 'Bearer ' + configKey, Accept: 'application/json' } }
@@ -367,16 +371,17 @@ let warnedNotReporting = false;
    claimant name, no reference, no email address, no filename and no document —
    the console has no column any of those could be written into, and this is
    the only place that could try. Failure here is ignored: a console that is
-   down must never stop a claimant's form reaching their attorney. */
+   down must never stop a claimant's form reaching the practice. */
 async function reportEvent(outcome, errorCode, bytes) {
   const consoleUrl = String(process.env.IFTFC_CONSOLE_URL || '').replace(/\/+$/, '');
   const eventKey = process.env.IFTFC_EVENT_KEY;
-  /* MUST match the REFERENCE shown on this form's page in the console. It was
-     'loss-of-support' here and 'loss-of-support-form' there, so every event
-     would have been refused with a 404 the moment the console variables were
-     set — delivering fine, recording nothing, for the same invisible reason
-     twice over. Corrected 2026-09-26. */
-  const slug = String(process.env.IFTFC_FORM_SLUG || 'loss-of-support-form');
+  /* MUST match the REFERENCE shown on this form's page in the console, AND the
+     default in form-recipients.js. On the sibling SJA build these three
+     literals drifted apart — 'loss-of-support' in one file, 'loss-of-support-
+     form' in the other — so events were refused with a 404 the moment the
+     console variables were set: delivering fine, recording nothing, invisibly.
+     All three say 'dr-pretorius-loss-of-support' here. Change them together. */
+  const slug = String(process.env.IFTFC_FORM_SLUG || 'dr-pretorius-loss-of-support');
 
   if (!consoleUrl || !eventKey) {
     if (!warnedNotReporting) {
@@ -486,7 +491,7 @@ exports.handler = async (event) => {
     return reply(500, { error: 'Email delivery is not configured on the server.' });
   }
 
-  /* A paused form still answers, and answers in the firm's own words. The
+  /* A paused form still answers, and answers in the operator's own words. The
      browser shows this instead of a generic failure, so a claimant is told to
      telephone rather than left retrying. */
   if (settings.paused) {
@@ -562,7 +567,7 @@ exports.handler = async (event) => {
     .replace(/[^A-Za-z0-9._-]/g, '-')
     .slice(0, 120);
 
-  /* The matter is named after the deceased — that is how the firm, the Fund
+  /* The matter is named after the deceased — that is how the practice, the Fund
      and the court all refer to it — and falls back to the person who filled
      the form in when the deceased's name was left blank. */
   const matterName = (deceasedFirstName || deceasedSurname)
