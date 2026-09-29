@@ -77,7 +77,16 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
 
 /* The console must never be able to hold up a claimant. If it has not answered
    in this long, it is ignored and the environment variable is used instead. */
-const CONFIG_TIMEOUT_MS = 2500;
+/* Q-S1, Richard's decision 29 September 2026. Was 2500ms. Measured that day:
+   the console's /api/form-config answers in 1.0-1.6s warm on the unauthenticated
+   path - and that path is refused BEFORE the database query an authorised call
+   performs, so the real figure is higher. Under a second of headroom, and two
+   real fail-opens were observed on two different hosts (CARL-console-022).
+   On timeout this falls back to the form's OWN settings, silently, while the
+   console still shows the form as governed. 6000ms buys a cold start on either
+   side. The cost is borne only when the console is genuinely slow or down, and
+   the config cache means it is not paid per submission. */
+const CONFIG_TIMEOUT_MS = 6000;
 const CONFIG_CACHE_MS = 60 * 1000;
 /* 1500 ms, and it stays there. On 2026-09-26 this was briefly raised to 5000
    because five curl round trips to the console measured 1.6-2.0s. That
@@ -146,6 +155,11 @@ function clientIp(event) {
     || 'unknown';
 }
 
+/* CARL-drplos-007. Which IPs have already had a rate_limited event reported in
+   the current window, so the transition is reported and the flood is not. */
+const limitedReported = new Map();
+let rateLimitIsNew = false;
+
 function rateLimited(event, now) {
   instanceHits = withinWindow(instanceHits, now);
   if (instanceHits.length >= MAX_PER_INSTANCE) return true;
@@ -154,6 +168,20 @@ function rateLimited(event, now) {
   const hits = withinWindow(ipHits.get(ip) || [], now);
   if (hits.length >= MAX_PER_IP) {
     ipHits.set(ip, hits);
+    /* CARL-drplos-007. Every blocked request used to report a rate_limited
+       event to the console. So deliberately tripping the throttle burned the
+       console's event-key allowance and BLINDED the delivery record — the
+       throttle's own noise denying the thing it protects. Report only the
+       transition into limited, once per IP per window. */
+    const lastReport = limitedReported.get(ip) || 0;
+    rateLimitIsNew = (now - lastReport) >= RATE_WINDOW_MS;
+    if (rateLimitIsNew) limitedReported.set(ip, now);
+    if (limitedReported.size > MAX_TRACKED_IPS) {
+      for (const [key, at] of limitedReported) {
+        if ((now - at) >= RATE_WINDOW_MS) limitedReported.delete(key);
+        if (limitedReported.size <= MAX_TRACKED_IPS) break;
+      }
+    }
     return true;
   }
 
@@ -447,6 +475,36 @@ exports.handler = async (event) => {
     return reply(405, { error: 'Method not allowed.' });
   }
 
+  /* CARL-drplos-006. Two narrow guards, before anything is parsed.
+
+     (1) Content-Type must be application/json. A cross-site form POST cannot
+         set that header without triggering a CORS preflight, so this alone
+         closes the simple-request path by which another site could drive this
+         endpoint from a visitor's browser — which is how the per-IP throttle
+         was launderable through other people's addresses.
+     (2) An Origin that is PRESENT and not ours is refused. An ABSENT Origin
+         stays allowed on purpose: a legitimate non-browser caller sends none,
+         and breaking those to chase a header is a worse trade.
+
+     Deliberately no CSRF token: this page persists nothing and has no session
+     to forge against, so a token would be ceremony rather than a control. */
+  const ctype = String(
+    (event.headers && (event.headers['content-type'] || event.headers['Content-Type'])) || ''
+  );
+  if (!/^application\/json\b/i.test(ctype)) {
+    return reply(415, { error: 'This endpoint accepts application/json only.' });
+  }
+
+  const origin = String(
+    (event.headers && (event.headers.origin || event.headers.Origin)) || ''
+  );
+  if (origin) {
+    const host = String((event.headers && (event.headers.host || event.headers.Host)) || '');
+    if (!host || origin.toLowerCase() !== 'https://' + host.toLowerCase()) {
+      return reply(403, { error: 'That request did not come from this form.' });
+    }
+  }
+
   // Reject oversized bodies before spending memory or CPU on them.
   if ((event.body || '').length > MAX_BODY_BYTES) {
     await reportEvent('oversize', 'LOCAL_PDF_TOO_LARGE', 0);
@@ -454,7 +512,12 @@ exports.handler = async (event) => {
   }
 
   if (rateLimited(event, Date.now())) {
-    await reportEvent('rate_limited', 'LOCAL_RATE_LIMIT', 0);
+    /* Not awaited: a blocked request must not hold an invocation open for the
+       event timeout. Fire and forget, and only on the transition. */
+    if (rateLimitIsNew) {
+      const p = reportEvent('rate_limited', 'LOCAL_RATE_LIMIT', 0);
+      if (p && typeof p.catch === 'function') p.catch(function () {});
+    }
     return {
       statusCode: 429,
       headers: {

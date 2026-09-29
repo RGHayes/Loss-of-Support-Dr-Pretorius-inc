@@ -20,7 +20,16 @@
  */
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
-const TIMEOUT_MS = 2500;
+/* Q-S1, Richard's decision 29 September 2026. Was 2500ms. Measured that day:
+   the console's /api/form-config answers in 1.0-1.6s warm on the unauthenticated
+   path - and that path is refused BEFORE the database query an authorised call
+   performs, so the real figure is higher. Under a second of headroom, and two
+   real fail-opens were observed on two different hosts (CARL-console-022).
+   On timeout this falls back to the form's OWN settings, silently, while the
+   console still shows the form as governed. 6000ms buys a cold start on either
+   side. The cost is borne only when the console is genuinely slow or down, and
+   the config cache means it is not paid per submission. */
+const TIMEOUT_MS = 6000;
 const CACHE_MS = 60 * 1000;
 
 let cache = null;

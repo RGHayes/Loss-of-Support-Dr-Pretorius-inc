@@ -87,8 +87,21 @@
      been retired, so it was a dead address sitting in a claimant-facing menu.
      This is the fallback menu only — the server holds the real allowlist and
      the console is the source of truth once wired. (STEVE-eco-002) */
+  /* CARL-drplos-008. This list is what the page offers when the recipients
+     endpoint does not answer, and in three of the four apps it held exactly one
+     address: the OPERATOR's. So during an outage a claimant's completed form —
+     accident details, medical particulars, a bereaved family's circumstances —
+     was offered to IFTFC rather than to the instructing firm, and the server
+     accepted it. That is a misdelivery by default, not a fallback.
+     It is the firm's own intake address now. The console still governs the real
+     list; this only ever applies while the console cannot be reached, and the
+     RECIPIENT_DOMAINS floor on the form site still bounds it either way.
+     Richard's own address is deliberately NOT here: he confirmed on
+     29 September 2026 that he is only a recipient while the forms are being
+     tested and that it falls away as each firm's addresses are added. */
   var RECIPIENTS = [
-    { label: 'IFTFC', email: 'richard@iftfc.co.za' }
+    { label: 'Dr Pretorius Inc — Admin', email: 'admin@drpretoriusinc.co.za' },
+    { label: 'Dr Pretorius Inc — Richard H', email: 'richardh@drpretoriusinc.co.za' }
   ];
 
   var PHOTO_SLOTS = [
@@ -2283,7 +2296,26 @@
     var bad = [];
     function check(label, text) {
       var v = String(text == null ? '' : text);
-      if (!v || WINANSI_OK.test(v)) return;
+      if (!v) return;
+      /* Q-S2. This used to test WinAnsi — the standard-14 encoding — and block
+         anything outside it, which meant a claimant named Łukasz could not
+         submit at all. The document can now embed DejaVu Sans, so the real
+         question is no longer "can helvetica print this" but "can the PDF print
+         this by any means available". pdf-builder owns that answer because it
+         owns the font, and its COVERAGE table was extracted from the font file
+         rather than assumed. Only characters DejaVu cannot print either — an
+         emoji, which lives outside the BMP — still stop a send. */
+      var PDF = window.DrPretoriusLossOfSupportPDF;
+      if (PDF && typeof PDF.unprintable === 'function') {
+        var bad2 = PDF.unprintable(v);
+        if (!bad2.length) return;
+        bad.push({ label: label, chars: bad2.join(' ') });
+        return;
+      }
+      /* pdf-builder absent or older than this check: fall back to the strict
+         WinAnsi test. Refusing too much is survivable; printing the wrong
+         character into a legal document is not. */
+      if (WINANSI_OK.test(v)) return;
       /* NINA-CALL-10. This walked the string one UTF-16 CODE UNIT at a time, so
          every emoji and every character outside the BMP was split into two lone
          surrogates and reported to the claimant as two replacement blobs. The
@@ -2316,6 +2348,21 @@
     return bad;
   }
 
+  /* Q-S2. Does anything the claimant typed need the embedded font? Scans the
+     answers as one blob rather than field by field: this only decides WHETHER to
+     spend 1.4 MB, and unsupportedCharsIn() does the precise per-field work
+     afterwards. WINANSI_OK is anchored and carries no /g, so it is safe to
+     reuse here without lastIndex surprises. */
+  function needsEmbeddedFont() {
+    var blob;
+    try {
+      blob = JSON.stringify(state.values || {}) + JSON.stringify(state.entries || {});
+    } catch (e) {
+      return true;   /* cannot tell: load it, rather than block a valid name */
+    }
+    return !WINANSI_OK.test(blob);
+  }
+
   function submit() {
     if (state.sending || !state.sendAck || !state.recipient) return;
     state.sending = true;
@@ -2323,6 +2370,31 @@
     $('sendError').hidden = true;
     showBusy('Preparing your form', 'This takes a few seconds. Please keep this page open.');
 
+    /* The font is fetched BEFORE the build, because build() is synchronous by
+       design and must stay that way. Nothing is fetched at all unless an answer
+       actually needs it, so the overwhelming majority of claimants pay nothing.
+       build() then picks up whichever family is registered. */
+    var PDFNS = window.DrPretoriusLossOfSupportPDF;
+    var wantFont = needsEmbeddedFont();
+    var fontReady = (wantFont && PDFNS && typeof PDFNS.ensureUnicodeFont === 'function')
+      ? PDFNS.ensureUnicodeFont()
+      : Promise.resolve(!wantFont);
+
+    fontReady.then(function (ok) {
+      if (wantFont && !ok) {
+        /* The font could not be fetched. Refuse rather than print the wrong
+           characters — the same failure as before this change, reached only when
+           the embedded font was needed and unavailable. */
+        failSend('Your answers contain characters that need an extra font, and it could '
+          + 'not be loaded just now. Check your connection and try again, or telephone '
+          + 'the office and they will take the details down as you say them.');
+        return;
+      }
+      submitAfterFont();
+    });
+  }
+
+  function submitAfterFont() {
     /* Let the overlay paint before the PDF work blocks the main thread. */
     window.setTimeout(function () {
       var record = buildRecord();
