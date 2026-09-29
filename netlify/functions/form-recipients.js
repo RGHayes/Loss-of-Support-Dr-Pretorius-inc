@@ -173,7 +173,7 @@ exports.handler = async (event) => {
   try {
     /* Must be the same literal as the two in send-form.js — see the note at
        reportEvent() there for what drifting them apart costs. */
-    const slug = String(process.env.IFTFC_FORM_SLUG || 'dr-pretorius-loss-of-support');
+    const slug = String(process.env.IFTFC_FORM_SLUG || 'loss-of-support');
     const res = await withTimeout(fetch(
       consoleUrl + '/api/form-config?form=' + encodeURIComponent(slug),
       { headers: { Authorization: 'Bearer ' + configKey, Accept: 'application/json' } }

@@ -57,7 +57,7 @@
  *   IFTFC_CONSOLE_URL   optional — e.g. https://iftfc-console.netlify.app
  *   IFTFC_CONFIG_KEY    optional — the console's config:read key
  *   IFTFC_EVENT_KEY     optional — the console's event:write key
- *   IFTFC_FORM_SLUG     optional — defaults to "dr-pretorius-loss-of-support".
+ *   IFTFC_FORM_SLUG     optional — defaults to "loss-of-support".
  *                                 The same literal in all three places it is
  *                                 read (here twice, and in
  *                                 form-recipients.js) — see the note at
@@ -271,7 +271,7 @@ async function loadSettings() {
   }
 
   try {
-    const slug = String(process.env.IFTFC_FORM_SLUG || 'dr-pretorius-loss-of-support');
+    const slug = String(process.env.IFTFC_FORM_SLUG || 'loss-of-support');
     const res = await withTimeout(fetch(
       consoleUrl + '/api/form-config?form=' + encodeURIComponent(slug),
       { headers: { Authorization: 'Bearer ' + configKey, Accept: 'application/json' } }
@@ -380,8 +380,8 @@ async function reportEvent(outcome, errorCode, bytes) {
      literals drifted apart — 'loss-of-support' in one file, 'loss-of-support-
      form' in the other — so events were refused with a 404 the moment the
      console variables were set: delivering fine, recording nothing, invisibly.
-     All three say 'dr-pretorius-loss-of-support' here. Change them together. */
-  const slug = String(process.env.IFTFC_FORM_SLUG || 'dr-pretorius-loss-of-support');
+     All three say 'loss-of-support' here. Change them together. */
+  const slug = String(process.env.IFTFC_FORM_SLUG || 'loss-of-support');
 
   if (!consoleUrl || !eventKey) {
     if (!warnedNotReporting) {
