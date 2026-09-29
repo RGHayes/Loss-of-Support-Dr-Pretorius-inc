@@ -248,6 +248,28 @@
       }
     }
 
+
+    /* LAST LINE, and it exists because of a weakness in the design above.
+       `unprintable()` answers against the EMBEDDED font's coverage whether or
+       not that font is actually registered. So if needsEmbeddedFont() ever
+       fails to spot that a record needs it, the per-field check would pass, the
+       font would never load, and this would render the name in helvetica —
+       corrupting it silently, which is the exact outcome the whole guard exists
+       to prevent. Checked here, at the only point that knows which family is
+       really active. A thrown error routes through app.js's existing catch to
+       failSend; a corrupted legal document routes nowhere and is noticed by
+       nobody. */
+    if (FAMILY === 'helvetica') {
+      var winansiSafe = /^[\x09\x0A\x0D\x20-\x7E\xA0-\xFF\u20AC\u201A\u0192\u201E\u2026\u2020\u2021\u02C6\u2030\u0160\u2039\u0152\u017D\u2018\u2019\u201C\u201D\u2022\u2013\u2014\u02DC\u2122\u0161\u203A\u0153\u017E\u0178]*$/;
+      var blob = '';
+      try {
+        blob = JSON.stringify(record.values || {}) + JSON.stringify(record.entries || {});
+      } catch (e) { blob = ''; }
+      if (blob && !winansiSafe.test(blob)) {
+        throw new Error('these answers need the embedded font and it is not registered');
+      }
+    }
+
     doc.setProperties({
       title: 'Loss of Support Form',
       subject: 'Loss of support intake — Dr Pretorius Inc',
