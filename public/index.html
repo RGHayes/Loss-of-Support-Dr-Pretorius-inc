@@ -182,14 +182,27 @@
 </div>
 
 <!-- Docked demo trigger. Hidden unless SHOW_DEMO_BUTTON is on in app.js. -->
-<button type="button" class="demo-dock" id="demoDock" hidden>Generate Example Report</button>
+<!-- NINA-CALL-06. This was "Generate Example Report" in the firm's own navy, in the
+     same visual family as the form's real buttons. A claimant reads "report" as "my
+     report" and "generate" as "produce mine". Richard has decided the dock stays
+     (A-3), so the job is to make it read as staff tooling: the word "report" leaves
+     the dock entirely, the label names its audience, and the styling drops out of the
+     form's colour family. -->
+<button type="button" class="demo-dock" id="demoDock" hidden>Firm demo — fill with example data</button>
 
 <!-- Passcode dialog for the demo generator -->
 <div class="dialog-backdrop" id="demoDialog" hidden>
   <div class="blueprint dialog" role="dialog" aria-modal="true" aria-labelledby="demoDialogTitle">
     <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
     <h2 class="dialog-title" id="demoDialogTitle">Passcode required</h2>
-    <p class="dialog-body">Example data is for testing only. Enter the passcode to fill every section.</p>
+    <!-- NINA-CALL-07. The old body described the gain ("fill every section") and hid
+         the cost entirely. The cost now comes FIRST, above the field, in the
+         claimant's own words. -->
+    <div class="notice notice-warn">
+      <div class="notice-body"><strong>This replaces everything on this form with example
+        data.</strong> Anything you have typed will be lost, and it cannot be undone.
+        This is for the firm's own testing.</div>
+    </div>
     <label class="visually-hidden" for="demoCode">Passcode</label>
     <input class="input" id="demoCode" type="password" inputmode="numeric" autocomplete="off" placeholder="Passcode">
     <div class="notice notice-warn" id="demoError" hidden>
@@ -197,7 +210,8 @@
     </div>
     <div class="dialog-actions">
       <button type="button" class="btn btn-secondary btn-small" id="demoCancel">Cancel</button>
-      <button type="button" class="btn btn-primary btn-small" id="demoConfirm">Fill the form</button>
+      <button type="button" class="btn btn-primary btn-small" id="demoConfirm">Replace my answers
+        with example data</button>
     </div>
   </div>
 </div>

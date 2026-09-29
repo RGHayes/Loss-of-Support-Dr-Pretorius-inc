@@ -59,6 +59,13 @@ const reply = (statusCode, body) => ({
     'Content-Type': 'application/json',
     'Cache-Control': 'no-store',
     'X-Content-Type-Options': 'nosniff',
+    /* CARL-drplos-013. The site's X-Robots-Tag comes from _headers and
+       netlify.toml, and NEITHER reaches a function response — same gap as
+       CARL-console-013. So the page was noindex while THIS endpoint, which
+       returns a named intake map of a law firm or a medical practice, was
+       served with no directive at all and was crawlable. Set it here, on the
+       response itself, because that is the only place that works. */
+    'X-Robots-Tag': 'noindex, nofollow, noarchive',
   },
   body: JSON.stringify(body),
 });

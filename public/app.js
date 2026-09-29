@@ -1353,9 +1353,21 @@
       frame.appendChild(empty);
     } else {
       frame.appendChild(el('div', 'sign-line'));
+      /* NINA-CALL-08. This said only how to operate the control — "sign above
+         with your mouse" — and nothing about what counts as a signature, on the
+         one screen that carries the indemnity. It also never mentioned the typed
+         alternative, which exists directly below and was invisible from here. */
       frame.appendChild(el('div', 'sign-hint', isDesktop()
-        ? 'Sign above with your mouse or trackpad'
-        : 'Sign above with your finger'));
+        ? 'Sign here with your mouse or stylus — or type your name instead.'
+        : 'Sign here with your finger or stylus — or type your name instead.'));
+      /* The message the minimum-ink test needs somewhere to say. Created here,
+         inside the pad's own frame, because that is where the claimant is
+         looking when the mark is rejected. */
+      var tooSmallMsg = el('div', 'draw-too-small', 'That mark is too small to be a '
+        + 'signature. Try again, or type your name instead.');
+      tooSmallMsg.hidden = true;
+      tooSmallMsg.setAttribute('role', 'status');
+      frame.appendChild(tooSmallMsg);
     }
 
     wrap.appendChild(frame);
@@ -1477,7 +1489,24 @@
          deliberate floor, not a judgement of handwriting: it only rejects a
          mark with essentially no travel. A sketch is exempt — a single dot on
          a scene diagram can be meaningful. */
-      if (!isSketch && inkDist < MIN_INK) return;
+      /* NINA-CALL-08. This used to `return` in silence: the mark was discarded and
+         the claimant was told nothing at all, so a dot looked accepted. Say what
+         happened, in the pad's own space, and name the way out. */
+      if (!isSketch && inkDist < MIN_INK) {
+        var tooSmall = frame.querySelector('.draw-too-small');
+        if (tooSmall) {
+          tooSmall.hidden = false;
+          window.setTimeout(function () { tooSmall.hidden = true; }, 6000);
+        }
+        /* Wipe the dot as well, so the pad does not keep a mark it has just
+           refused to accept. Same three lines the Clear button uses — there is
+           no clearCanvas() helper in these apps, and inventing a call to one
+           is how a fix passes a syntax check and throws on first use. */
+        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+        dirty = false;
+        announce('That mark is too small to be a signature.');
+        return;
+      }
       var url = canvas.toDataURL('image/png');
       if (isSketch) {
         state.sketch = url;
@@ -2255,14 +2284,25 @@
     function check(label, text) {
       var v = String(text == null ? '' : text);
       if (!v || WINANSI_OK.test(v)) return;
+      /* NINA-CALL-10. This walked the string one UTF-16 CODE UNIT at a time, so
+         every emoji and every character outside the BMP was split into two lone
+         surrogates and reported to the claimant as two replacement blobs. The
+         message named nothing findable. Walk code POINTS. */
       var chars = [];
-      for (var i = 0; i < v.length; i++) {
-        if (!WINANSI_OK.test(v.charAt(i)) && chars.indexOf(v.charAt(i)) === -1) chars.push(v.charAt(i));
-      }
+      var cps = v.match(/[\uD800-\uDBFF][\uDC00-\uDFFF]|[\s\S]/g) || [];
+      cps.forEach(function (ch) {
+        if (!WINANSI_OK.test(ch) && chars.indexOf(ch) === -1) chars.push(ch);
+      });
       bad.push({ label: label, chars: chars.join(' ') });
     }
     (record.sections || []).forEach(function (sec) {
-      (sec.fields || []).forEach(function (f) {
+      /* ALLISON-forms-022, REOPENED by Allison and she was right: this read
+         sec.fields. Sections carry their fields in `f` (SECTIONS[n].f), so
+         the list was always empty and unsupportedCharsIn() always returned
+         nothing. The check has never executed since the day it was written —
+         `Zoë 🙂 مُحَمَّد` sent clean on two apps. A guard that silently does
+         nothing is worse than no guard, because the finding reads as closed. */
+      (sec.f || []).forEach(function (f) {
         if (!f || !f.k) return;
         if (record.values && record.values[f.k] != null) check(f.l || f.k, record.values[f.k]);
         var rows = (record.entries && record.entries[f.k]) || [];
@@ -2302,14 +2342,27 @@
         return;
       }
       if (unsupported.length) {
+        /* NINA-CALL-10. "Some answers contain characters" sends a claimant hunting
+           through fifteen sections. Name the characters, and put the fault on the
+           document — it is the PDF that cannot print them, not the claimant who
+           spelled their own name wrong. */
+        var allChars = [];
+        unsupported.forEach(function (u) {
+          u.chars.split(' ').forEach(function (c) {
+            if (c && allChars.indexOf(c) === -1) allChars.push(c);
+          });
+        });
+        var heading = allChars.length === 1
+          ? 'One character in your answers cannot be printed in the PDF: ' + allChars[0]
+          : 'Some characters in your answers cannot be printed in the PDF: ' + allChars.join('  ');
         var names = unsupported.slice(0, 4).map(function (u) {
           return '\u2022 ' + u.label + '  (' + u.chars + ')';
         }).join('\n');
-        failSend('Some answers contain characters this form cannot print into the PDF, '
-          + 'and sending them would put the wrong text into your file.\n\n'
-          + names
+        failSend(heading + '\n\n'
+          + 'They appear in:\n' + names
           + (unsupported.length > 4 ? '\n\u2026 and ' + (unsupported.length - 4) + ' more' : '')
-          + '\n\nPlease edit those answers and try again, or telephone the office.');
+          + '\n\nYou can change them here and send again. If the spelling matters and you '
+          + 'cannot change it, telephone the office and they will take it down as you say it.');
         return;
       }
       var doc, base64;
@@ -2400,6 +2453,38 @@
     for (k in state.photos) { if (state.photos[k]) return true; }
     for (k in state.docs) { if (state.docs[k]) return true; }
     return !!(state.sketch || state.signature);
+  }
+
+  /* NINA-CALL-09. Stays until dismissed, because a claimant who restores and then
+     answers three more questions still needs to know which answers came from the
+     file. Built as a real node with textContent only — never innerHTML. */
+  function showRestoredBanner(savedAt) {
+    var old = document.getElementById('restoredBanner');
+    if (old && old.parentNode) old.parentNode.removeChild(old);
+
+    var when = '';
+    if (savedAt) {
+      var d = new Date(savedAt);
+      if (!isNaN(d.getTime())) {
+        var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+                      'August', 'September', 'October', 'November', 'December'];
+        when = ' — saved ' + d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+      }
+    }
+
+    var bar = el('div', 'notice notice-ok');
+    bar.id = 'restoredBanner';
+    var body = el('div', 'notice-body', 'Restored from your saved file' + when + '.');
+    bar.appendChild(body);
+    var dismiss = el('button', 'btn btn-secondary btn-small', 'Hide this');
+    dismiss.type = 'button';
+    dismiss.addEventListener('click', function () {
+      if (bar.parentNode) bar.parentNode.removeChild(bar);
+    });
+    bar.appendChild(dismiss);
+
+    var host = document.getElementById('screen-hub') || document.body;
+    host.insertBefore(bar, host.firstChild);
   }
 
   function fillExample() {
@@ -2565,7 +2650,11 @@
        and consent already given — one checkbox and one button from sending
        fabricated data to the firm. Land on the first section instead: this is
        a filled-in form to look at, not a form ready to send. */
-    go(SECTIONS[0].id);
+    /* ALLISON-forms-024. This was go(SECTIONS[0].id), which passes a SECTION
+       id where go() expects a SCREEN — state.screen became 'personal', which
+       renders nothing, and the example run ended on a blank form with an
+       uncaught TypeError. Mirror how the rest of the app navigates. */
+    go(isDesktop() ? 'section' : 'hub', isDesktop() ? SECTIONS[0].id : null);
   }
 
   function examplePhoto(caption, tone) {
@@ -2743,8 +2832,25 @@
       var file = $('draftInput').files && $('draftInput').files[0];
       $('draftInput').value = '';
       if (!file) return;
+      /* NINA-CALL-09, first half. Nina asked for a three-way choice — replace,
+         fill only the blanks, or cancel — on the premise that a restore MERGES.
+         It no longer does: ALLISON-forms-018 / CARL-drplos-001 made restoreDraft
+         call resetForNewSubmission(), so it is a clean replace. Building a
+         merge mode now would undo that fix, so the choice is the honest two:
+         replace, or cancel. The third option is recorded as not built, and why.
+         What the replace made newly dangerous is that it destroys whatever is on
+         the form in silence — the same defect ALLISON-forms-014 fixed for the
+         example fill, on a path that never got the same treatment. */
+      if (hasAnyEntry() && !window.confirm(
+          'This will replace every answer on this form with the ones in your saved file. '
+          + 'Anything you have typed since you saved cannot be recovered.\n\n'
+          + 'Press Cancel to keep what is on the form.')) {
+        return;
+      }
       var reader = new FileReader();
       reader.onload = function () {
+        var savedAt = null;
+        try { savedAt = JSON.parse(String(reader.result)).savedAt; } catch (e) { savedAt = null; }
         var result = restoreDraft(String(reader.result));
         if (result === 'version') {
           window.alert('That progress file was saved before the questions on this form changed, '
@@ -2757,6 +2863,10 @@
             + 'accident information form cannot be loaded here — the questions are different.');
           return;
         }
+        /* NINA-CALL-09, second half. One claimant, one form, possibly weeks
+           apart — the DATE is the whole value of the sentence, and there was
+           nothing anywhere on screen saying a restore had happened at all. */
+        showRestoredBanner(savedAt);
         go(isDesktop() ? 'section' : 'hub', isDesktop() ? SECTIONS[0].id : null);
       };
       reader.onerror = function () { window.alert('That file could not be read.'); };

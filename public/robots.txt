@@ -1,0 +1,11 @@
+# These are private claimant intake forms, reached by a link the instructing
+# firm sends to one person. They are not for search engines, and neither is the
+# recipient endpoint: /api/form-recipients returns the firm's own intake
+# addresses, which is a named map of who works there.
+#
+# Every page also carries X-Robots-Tag: noindex, nofollow, noarchive, and the
+# function responses now set it themselves (CARL-drplos-013) — a robots.txt is
+# a request, a header is an instruction, and the header is the one that binds.
+# This file exists so that a crawler which never fetches a page still knows.
+User-agent: *
+Disallow: /

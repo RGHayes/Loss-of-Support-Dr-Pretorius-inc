@@ -479,15 +479,21 @@ select.input { padding: 0 10px; appearance: none; background-image: none; }
 .action-inner .btn[hidden] { display: none; }
 
 /* ── Demo button (development only) ─────────────────────────────────────── */
+/* NINA-CALL-06. Deliberately OUT of the form's colour family: muted, hairline
+   outline, no fill, one size smaller — the not-for-you register rather than a
+   button. It must stay legible (Laura checks the contrast); it must simply not
+   look like one of the claimant's own controls. */
 .demo-dock {
   position: fixed; right: 0; top: 42%; z-index: 40;
   transform: translateY(-50%) rotate(180deg); writing-mode: vertical-rl;
-  background: var(--color-accent-800); color: var(--color-paper);
-  border: 0; padding: 14px 8px; cursor: pointer;
-  font-family: var(--font-heading); font-weight: 600; font-size: 12px;
-  letter-spacing: 0.12em; text-transform: uppercase;
+  background: transparent; color: var(--color-neutral-700);
+  border: 1px solid var(--color-neutral-400); border-right: 0;
+  padding: 12px 6px; cursor: pointer;
+  font-family: var(--font-heading); font-weight: 600; font-size: 11px;
+  letter-spacing: 0.1em; text-transform: uppercase;
 }
-.demo-dock:hover { background: var(--color-accent); }
+.demo-dock:hover { background: var(--color-neutral-100); color: var(--color-ink); }
+.demo-dock:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 .demo-dock[hidden] { display: none; }
 
 /* On a phone the dock lies across the right-hand edge, exactly where the
@@ -827,3 +833,22 @@ body.has-demo .screen { padding-right: calc(var(--pad) + 34px); }
 .notice-rescue { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--color-warn-line); }
 .notice-rescue[hidden] { display: none; }
 .notice-rescue .notice-body { margin-bottom: 10px; }
+
+/* NINA-CALL-08. Shown inside the signature pad when the minimum-ink test
+   refuses a mark. It used to refuse in silence, so a dot looked accepted. */
+.draw-too-small {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: var(--color-paper); border-top: 1px solid var(--color-warn, #b45309);
+  color: var(--color-warn, #b45309);
+  font-size: 12px; line-height: 1.4; padding: 7px 10px; text-align: center;
+}
+.draw-too-small[hidden] { display: none; }
+
+/* NINA-CALL-09. The restore banner. Reuses the notice shell; there was no
+   notice-ok class, so this defines the one the banner asks for. */
+.notice-ok {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  border-left: 3px solid var(--color-accent); background: var(--color-neutral-100);
+  padding: 10px 14px; margin: 0 0 16px;
+}
+.notice-ok .notice-body { flex: 1 1 20ch; font-size: 13px; }
