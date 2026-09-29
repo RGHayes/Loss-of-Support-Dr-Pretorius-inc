@@ -463,6 +463,20 @@
       setColor(doc, GREY);
       doc.text(FOOTER_TEXT, ML, FOOTER_RULE_Y + 4.2);
       doc.text('Page ' + p + ' of ' + total, PAGE_W - MR, FOOTER_RULE_Y + 4.2, { align: 'right' });
+
+      /* ALLISON-forms-015. An example report carried no mark of any kind and
+         was indistinguishable from a real submission — in a medico-legal file
+         that is a data-integrity problem, not a cosmetic one. Band every page,
+         above the content, so it cannot be cropped off or missed. */
+      if (record.isExample) {
+        doc.setFillColor(176, 32, 32);
+        doc.rect(0, 0, PAGE_W, 7.5, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(255, 255, 255);
+        doc.text('EXAMPLE — NOT A REAL SUBMISSION', PAGE_W / 2, 5.2, { align: 'center' });
+        setColor(doc, GREY);
+      }
     }
 
     return doc;

@@ -557,6 +557,7 @@
     docs: {},           // slot id -> data URL, across every set
     sketch: null,
     signature: null,
+    isExample: false,   /* ALLISON-forms-015 */
     signatureTyped: false,
     /* Chosen in the dialog each time, never restored from a progress file: a
        saved file must not be able to decide where a form is sent. */
@@ -649,7 +650,13 @@
     if (f.t === 'm') {
       return entriesOf(f.k).some(function (entry) { return entryHasValue(f, entry); });
     }
-    return !!valueOf(f.k);
+    /* ALLISON-forms-016. This was `!!valueOf(f.k)` — a string of spaces is
+       truthy, so a required field containing "     " counted as answered. The
+       review screen then omitted it from the outstanding list and rendered a
+       blank row rather than the honest "Not answered". On this form that
+       includes the cell phone number, which is how the firm calls the claimant
+       back. */
+    return !!valueOf(f.k).trim();
   }
 
   function isRequired(f) {
@@ -659,10 +666,98 @@
     return true;
   }
 
+
+  /* ALLISON-forms-017. `required` was presence-only: nothing in any of these
+     forms validated the SHAPE of a claimant's answer. An ID number of
+     "0000000000000000000abc", a date of birth of "3026/13/45" and an email of
+     "not-an-email" were all accepted, stored and rendered into the review
+     screen verbatim, with no error and no hint.
+
+     These are RAF intake forms. The ID number and the accident date are the
+     two fields the firm uses to open a file and to check prescription, and a
+     mistyped one that nothing questions travels into the PDF and into the
+     attorney's file as though it were checked.
+
+     The rules below are deliberately forgiving — they reject what cannot be
+     right, not what looks unusual — because a validator that rejects a real
+     person's real details is worse than none. A badly-formatted answer is
+     reported exactly like a missing one: named on the review screen, with a
+     way back to its section.
+
+     The ID check is a real Luhn check plus an embedded-date check, which is
+     what makes it worth doing: a typo in any single digit fails it. */
+  function luhnOk(digits) {
+    var sum = 0, alt = false;
+    for (var i = digits.length - 1; i >= 0; i--) {
+      var n = parseInt(digits.charAt(i), 10);
+      if (alt) { n *= 2; if (n > 9) n -= 9; }
+      sum += n; alt = !alt;
+    }
+    return sum % 10 === 0;
+  }
+
+  function saIdProblem(v) {
+    var d = v.replace(/\s/g, '');
+    if (!/^\d{13}$/.test(d)) return 'should be 13 digits';
+    var yy = +d.slice(0, 2), mm = +d.slice(2, 4), dd = +d.slice(4, 6);
+    if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return 'the date inside it is not a real date';
+    var full = new Date((yy > (new Date().getFullYear() % 100) ? 1900 + yy : 2000 + yy), mm - 1, dd);
+    if (full.getMonth() !== mm - 1 || full.getDate() !== dd) return 'the date inside it is not a real date';
+    if (!luhnOk(d)) return 'the check digit does not match — one of the digits is probably mistyped';
+    return null;
+  }
+
+  function dateProblem(v) {
+    var m = /^(\d{4})\/(\d{2})\/(\d{2})$/.exec(v.trim());
+    if (!m) return 'should be written as YYYY/MM/DD';
+    var y = +m[1], mo = +m[2], d = +m[3];
+    var dt = new Date(y, mo - 1, d);
+    if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return 'is not a real date';
+    var now = new Date();
+    if (dt > new Date(now.getFullYear() + 1, now.getMonth(), now.getDate())) return 'is in the future';
+    if (y < 1900) return 'looks too long ago';
+    return null;
+  }
+
+  function formatProblem(f) {
+    if (!f || f.t !== 't') return null;
+    /* The example data is deliberately NOT valid — every demo ID number in
+       these forms fails the Luhn check on purpose, because a Luhn-VALID South
+       African ID number in fabricated demo data could belong to a real person.
+       Whoever wrote that data got it right, and it must stay that way. So the
+       example run is exempt from these checks rather than the data being
+       "corrected" to satisfy them. (ALLISON-forms-015 / -017) */
+    if (state.isExample) return null;
+    var v = valueOf(f.k).trim();
+    if (!v) return null;               /* empty is "missing", not "wrong" */
+    var k = String(f.k);
+    if (/idnumber/i.test(k)) return saIdProblem(v);
+    if (/^(dateOfBirth|accidentDate|dateOfDeath|signDate|dod|dob)$/i.test(k) ||
+        (f.ph === 'YYYY/MM/DD')) return dateProblem(v);
+    if (f.im === 'email' || /email/i.test(k)) {
+      return /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/.test(v) ? null : 'does not look like an email address';
+    }
+    if (/postal/i.test(k)) return /^\d{4}$/.test(v) ? null : 'should be four digits';
+    if (f.im === 'tel' || /^(cell|altCell|contact|tel|phone)/i.test(k)) {
+      var digits = v.replace(/[^\d]/g, '');
+      if (digits.length < 9 || digits.length > 13) return 'does not look like a telephone number';
+    }
+    return null;
+  }
+
+  function badFormatFields(s) {
+    return s.f.filter(function (f) { return isVisible(f) && !!formatProblem(f); });
+  }
+
   function sectionStarted(s) { return s.f.some(hasValue); }
 
   function missingFields(s) {
-    return s.f.filter(function (f) { return isRequired(f) && !hasValue(f); });
+    /* ALLISON-forms-017. A required answer that is present but cannot be right
+       is reported alongside the ones that are absent — same list, same way
+       back to the section, with the reason named. */
+    return s.f.filter(function (f) {
+      return (isRequired(f) && !hasValue(f)) || (isVisible(f) && !!formatProblem(f));
+    });
   }
 
   function missingIn(s) {
@@ -1192,11 +1287,41 @@
     var ctx = null;
     var drawing = false;
     var dirty = false;
+    /* ALLISON-forms-021 — how far the pointer has travelled in this mark, and
+       the floor below which it is a tap rather than a signature. */
+    var MIN_INK = 24;
+    var inkDist = 0;
+    var lastPt = { x: 0, y: 0 };
     var rectW = 0;
     var rectH = 0;
 
     function setEmptyVisible(show) {
       if (isSketch && empty) empty.hidden = !show;
+    }
+
+    /* ALLISON-forms-020. setup() sizes the backing store once per render and
+       remembers rectW/rectH. The only thing that re-ran it was the
+       matchMedia('(min-width: 900px)') listener, so ANY resize that did not
+       cross 900px left the canvas scaled to the old size — the drawing landed
+       somewhere other than the cursor, silently. Watch the frame itself. */
+    var ro = null;
+    function watchFrame() {
+      if (ro || typeof window.ResizeObserver !== 'function') return;
+      ro = new window.ResizeObserver(function () {
+        var r = frame.getBoundingClientRect();
+        if (!r.width || (Math.abs(r.width - rectW) < 1 && Math.abs(r.height - rectH) < 1)) return;
+        var keep = isSketch ? state.sketch : state.signature;
+        setup();
+        /* Re-draw what was there. Without this a resize would wipe the mark,
+           which is a worse bug than the one being fixed. */
+        if (keep && ctx) {
+          var img = new window.Image();
+          img.onload = function () { if (ctx) ctx.drawImage(img, 0, 0, rectW, rectH); };
+          img.src = keep;
+          setEmptyVisible(false);
+        }
+      });
+      ro.observe(frame);
     }
 
     function setup() {
@@ -1210,6 +1335,7 @@
       ctx = canvas.getContext('2d');
       ctx.scale(dpr, dpr);
       ctx.lineWidth = isSketch ? 2.2 : 2;
+      watchFrame();
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.strokeStyle = '#1d1f20';
@@ -1238,6 +1364,8 @@
       setEmptyVisible(false);
       canvas.setPointerCapture(ev.pointerId);
       var p = pointAt(ev);
+      lastPt = p;
+      inkDist = 0;
       ctx.beginPath();
       ctx.moveTo(p.x, p.y);
       ctx.lineTo(p.x + 0.01, p.y);
@@ -1248,6 +1376,13 @@
       if (!drawing || !ctx) return;
       ev.preventDefault();
       var p = pointAt(ev);
+      /* ALLISON-forms-021. Measure how far the pointer has actually travelled.
+         pointerdown alone used to be enough to store a signature: one tap left
+         a single dot in a section headed "Signature and consent", carrying the
+         indemnity, and nothing on the review screen or in the PDF said the mark
+         was empty. */
+      inkDist += Math.abs(p.x - lastPt.x) + Math.abs(p.y - lastPt.y);
+      lastPt = p;
       ctx.lineTo(p.x, p.y);
       ctx.stroke();
     });
@@ -1256,6 +1391,11 @@
       if (!drawing) return;
       drawing = false;
       if (!dirty) return;
+      /* ALLISON-forms-021. A signature needs ink, not a tap. MIN_INK is a
+         deliberate floor, not a judgement of handwriting: it only rejects a
+         mark with essentially no travel. A sketch is exempt — a single dot on
+         a scene diagram can be meaningful. */
+      if (!isSketch && inkDist < MIN_INK) return;
       var url = canvas.toDataURL('image/png');
       if (isSketch) {
         state.sketch = url;
@@ -1543,7 +1683,10 @@
       SECTIONS.forEach(function (s) {
         var gaps = missingFields(s);
         if (!gaps.length) return;
-        var names = gaps.map(function (f) { return f.l; }).join(', ');
+        var names = gaps.map(function (f) {
+          var why = formatProblem(f);
+          return why ? f.l + ' (' + why + ')' : f.l;
+        }).join(', ');
         var jump = el('button', 'outstanding-jump');
         jump.type = 'button';
         jump.appendChild(el('span', 'outstanding-where', s.n));
@@ -1770,6 +1913,22 @@
     if (!draft || typeof draft !== 'object' || draft.app !== DRAFT_APP_ID) return 'notours';
     if (draft.version !== DRAFT_VERSION) return 'version';
 
+    /* ALLISON-forms-018. A progress file is a SNAPSHOT OF A WHOLE FORM, not a
+       patch. This used to write the file's answers on top of whatever was
+       already on screen, so a restore could leave fields the claimant never
+       entered in this session sitting alongside the ones the file carried —
+       and on a shared or re-used browser, one person's answers beside
+       another's. Clear first, then apply. */
+    state.values = {};
+    state.entries = {};
+    state.photos = {};
+    state.docs = {};
+    state.done = {};
+    state.sketch = null;
+    state.signature = null;
+    state.signatureTyped = false;
+    state.isExample = false;
+
     var values = draft.values && typeof draft.values === 'object' ? draft.values : {};
     Object.keys(RESTORABLE).forEach(function (k) {
       var type = RESTORABLE[k];
@@ -1812,7 +1971,12 @@
     var done = draft.done && typeof draft.done === 'object' ? draft.done : {};
     SECTIONS.forEach(function (s) { if (done[s.id] === true) state.done[s.id] = true; });
 
-    state.consent = true;
+    /* ALLISON-forms-019. This was an unconditional `true`, so restoring ANY
+       file satisfied the POPIA consent gate — including a file whose own
+       record says consent was never given, and including a file somebody else
+       supplied. The consent flag is the record that the indemnity was shown.
+       Honour what the file actually says. */
+    state.consent = draft.consent === true;
     return true;
   }
 
@@ -1855,12 +2019,15 @@
       sketch: state.sketch,
       signature: state.signature,
       signatureTyped: !!state.signatureTyped,
+      isExample: !!state.isExample,   /* ALLISON-forms-015 */
       submittedAt: new Date()
     };
   }
 
   function pdfFilename(record) {
-    var parts = ['Loss-of-Support-Form'];
+    /* ALLISON-forms-015. An example report was indistinguishable from a
+       real one. Say so in the name as well as on the page. */
+    var parts = [record.isExample ? 'EXAMPLE-NOT-A-REAL-SUBMISSION_Loss-of-Support-Form' : 'Loss-of-Support-Form'];
     if (record.values.claimRef) parts.push(record.values.claimRef);
     if (record.values.decSurname) parts.push(record.values.decSurname);
     return parts.join('_').replace(/[^A-Za-z0-9._-]/g, '-').slice(0, 110) + '.pdf';
@@ -1989,6 +2156,47 @@
     openDialog('recipientDialog', list.querySelector('.recipient-option'));
   }
 
+
+  /* ALLISON-forms-022. The PDF uses jsPDF's standard-14 base fonts with
+     WinAnsiEncoding and embeds no font file, so any character outside
+     Windows-1252 is written into the document as something else entirely —
+     silently. In a South African medico-legal file that means names: a
+     claimant called Ncumisa Šefu or a street in Łódź reaches the firm mangled,
+     and nobody finds out until the file is wrong.
+
+     Silent corruption is worse than a visible refusal, so we refuse. The
+     honest fix is to embed a Unicode subset font (addFileToVFS + addFont);
+     that is a separate, larger change that needs testing on all four forms.
+     Until then this tells the claimant exactly which answer to change rather
+     than printing rubbish into a legal document. */
+  var WINANSI_OK = /^[\x09\x0A\x0D\x20-\x7E\xA0-\xFF€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ]*$/;
+
+  function unsupportedCharsIn(record) {
+    var bad = [];
+    function check(label, text) {
+      var v = String(text == null ? '' : text);
+      if (!v || WINANSI_OK.test(v)) return;
+      var chars = [];
+      for (var i = 0; i < v.length; i++) {
+        if (!WINANSI_OK.test(v.charAt(i)) && chars.indexOf(v.charAt(i)) === -1) chars.push(v.charAt(i));
+      }
+      bad.push({ label: label, chars: chars.join(' ') });
+    }
+    (record.sections || []).forEach(function (sec) {
+      (sec.fields || []).forEach(function (f) {
+        if (!f || !f.k) return;
+        if (record.values && record.values[f.k] != null) check(f.l || f.k, record.values[f.k]);
+        var rows = (record.entries && record.entries[f.k]) || [];
+        rows.forEach(function (row, n) {
+          Object.keys(row || {}).forEach(function (kk) {
+            check((f.l || f.k) + ' — entry ' + (n + 1), row[kk]);
+          });
+        });
+      });
+    });
+    return bad;
+  }
+
   function submit() {
     if (state.sending || !state.sendAck || !state.recipient) return;
     state.sending = true;
@@ -1999,6 +2207,20 @@
     /* Let the overlay paint before the PDF work blocks the main thread. */
     window.setTimeout(function () {
       var record = buildRecord();
+
+      /* ALLISON-forms-022 — refuse rather than corrupt. */
+      var unsupported = unsupportedCharsIn(record);
+      if (unsupported.length) {
+        var names = unsupported.slice(0, 4).map(function (u) {
+          return '\u2022 ' + u.label + '  (' + u.chars + ')';
+        }).join('\n');
+        failSend('Some answers contain characters this form cannot print into the PDF, '
+          + 'and sending them would put the wrong text into your file.\n\n'
+          + names
+          + (unsupported.length > 4 ? '\n\u2026 and ' + (unsupported.length - 4) + ' more' : '')
+          + '\n\nPlease edit those answers and try again, or telephone the office.');
+        return;
+      }
       var doc, base64;
       try {
         doc = window.DrPretoriusLossOfSupportPDF.build(record);
@@ -2075,7 +2297,32 @@
                  dbl = not dbl
              return t % 10 == 0        # True means DO NOT USE
   */
+  /* ALLISON-forms-014/015. Does the claimant have anything in the form? */
+  function hasAnyEntry() {
+    var k;
+    for (k in state.values) { if (valueOf(k).trim()) return true; }
+    for (k in state.entries) {
+      if ((state.entries[k] || []).some(function (e) {
+        return Object.keys(e || {}).some(function (kk) { return String(e[kk] || '').trim(); });
+      })) return true;
+    }
+    for (k in state.photos) { if (state.photos[k]) return true; }
+    for (k in state.docs) { if (state.docs[k]) return true; }
+    return !!(state.sketch || state.signature);
+  }
+
   function fillExample() {
+    /* ALLISON-forms-014. This used to overwrite whatever was on the form with
+       no warning at all. These apps deliberately store nothing — that is the
+       whole design — so there is no undo and no draft to fall back on: a
+       claimant part-way through a long medico-legal form lost the lot. The
+       passcode gate does not help; it protects the FEATURE, not their work. */
+    if (hasAnyEntry() && !window.confirm(
+        'This will erase the answers you have already entered and replace them '
+        + 'with example data. They cannot be recovered.\n\n'
+        + 'If you want to keep them, press Cancel and use "Save progress" first.')) {
+      return;
+    }
     var v = {
       title: 'Mrs', firstName: 'Nomsa', surname: 'Dlamini', dateOfBirth: '1988/02/11',
       gender: 'Female', citizenship: 'South African', idNumber: '8802110854080',
@@ -2219,7 +2466,15 @@
     SECTIONS.forEach(function (s) { state.done[s.id] = true; });
     state.consent = true;
     state.sendAck = false;
-    go('review');
+    /* ALLISON-forms-015. The record carried no marker of any kind, so an
+       example report was indistinguishable from a real submission in the
+       record and in the PDF. */
+    state.isExample = true;
+    /* And it used to land on "Review and send", every section showing complete
+       and consent already given — one checkbox and one button from sending
+       fabricated data to the firm. Land on the first section instead: this is
+       a filled-in form to look at, not a form ready to send. */
+    go(SECTIONS[0].id);
   }
 
   function examplePhoto(caption, tone) {
