@@ -211,7 +211,7 @@
       { k: 'title', l: 'Title', t: 's', o: TITLES },
       { k: 'firstName', l: 'Name', t: 't', req: 1, ph: 'e.g. Nomsa' },
       { k: 'surname', l: 'Surname', t: 't', req: 1, ph: 'e.g. Dlamini' },
-      { k: 'dateOfBirth', l: 'Date of birth', t: 't', req: 1, ph: 'YYYY/MM/DD', im: 'numeric', ns: 1 },
+      { k: 'dateOfBirth', l: 'Date of birth', t: 't', req: 1, ph: 'YYYY/MM/DD', ns: 1 },
       { k: 'gender', l: 'Gender', t: 's', o: GENDERS },
 
       { k: 'hdrCitizen', l: 'Citizenship', t: 'h', wide: 1 },
@@ -244,11 +244,11 @@
       { k: 'decTitle', l: 'Title', t: 's', o: TITLES },
       { k: 'decFirstName', l: 'Name', t: 't', req: 1, ph: 'e.g. Sipho' },
       { k: 'decSurname', l: 'Surname', t: 't', req: 1, ph: 'e.g. Dlamini' },
-      { k: 'decDateOfBirth', l: 'Date of birth', t: 't', req: 1, ph: 'YYYY/MM/DD', im: 'numeric', ns: 1 },
-      { k: 'decDateOfDeath', l: 'Date of death', t: 't', req: 1, ph: 'YYYY/MM/DD', im: 'numeric', ns: 1 },
+      { k: 'decDateOfBirth', l: 'Date of birth', t: 't', req: 1, ph: 'YYYY/MM/DD', ns: 1 },
+      { k: 'decDateOfDeath', l: 'Date of death', t: 't', req: 1, ph: 'YYYY/MM/DD', ns: 1 },
       { k: 'decTimeOfDeath', l: 'Time of death', t: 't', ph: 'e.g. 21:15', ns: 1,
         hint: 'As recorded on the death certificate. If you do not know it, leave it blank.' },
-      { k: 'decIdNumber', l: 'ID number', t: 't', req: 1, ph: '13 digits, or the passport number', im: 'numeric', ns: 1 },
+      { k: 'decIdNumber', l: 'ID number', t: 't', req: 1, ph: '13 digits, or the passport number', ns: 1 },
       { k: 'decGender', l: 'Gender', t: 's', o: GENDERS },
       { k: 'decCountryBirth', l: 'Country of birth', t: 's', o: COUNTRIES },
       { k: 'decCountryResidence', l: 'Country of residence', t: 's', o: COUNTRIES },
@@ -272,8 +272,8 @@
           { k: 'title', l: 'Title', t: 's', o: TITLES },
           { k: 'name', l: 'Name', t: 't', ph: 'e.g. Lindiwe' },
           { k: 'surname', l: 'Surname', t: 't', ph: 'e.g. Dlamini' },
-          { k: 'dateOfBirth', l: 'Date of birth', t: 't', ph: 'YYYY/MM/DD', im: 'numeric', ns: 1 },
-          { k: 'idNumber', l: 'ID number', t: 't', ph: '13 digits, or a birth certificate number', im: 'numeric', ns: 1 },
+          { k: 'dateOfBirth', l: 'Date of birth', t: 't', ph: 'YYYY/MM/DD', ns: 1 },
+          { k: 'idNumber', l: 'ID number', t: 't', ph: '13 digits, or a birth certificate number', ns: 1 },
           { k: 'race', l: 'Ethnic group or race', t: 's', o: RACES },
           { k: 'countryBirth', l: 'Country of birth', t: 's', o: COUNTRIES },
           { k: 'countryResidence', l: 'Country of residence', t: 's', o: COUNTRIES },
@@ -324,7 +324,7 @@
     { id: 'when', g: 'The accident', n: 'Date and time of the accident', h: 'When the accident happened, and when the person died.', f: [
       { k: 'claimRef', l: 'Claim or reference number', t: 't', ph: 'e.g. RAF-2026-00456', ns: 1,
         hint: 'Only fill this in if applicable. Leave it blank if you have not been given a reference.' },
-      { k: 'accidentDate', l: 'Date of accident', t: 't', req: 1, ph: 'YYYY/MM/DD', im: 'numeric', ns: 1 },
+      { k: 'accidentDate', l: 'Date of accident', t: 't', req: 1, ph: 'YYYY/MM/DD', ns: 1 },
       { k: 'accidentTime', l: 'Approximate time', t: 't', ph: 'e.g. 17:40', ns: 1 },
       { k: 'diedAtScene', l: 'Did the deceased die at the scene?', t: 'r', req: 1, wide: 1, o: ['Yes', 'No', 'Unsure'] },
       { k: 'diedWhere', l: 'Where did they die?', t: 't', wide: 1, showIf: ['diedAtScene', ['No', 'Unsure']],
@@ -456,9 +456,9 @@
     /* ── 15 ─ funeral ──────────────────────────────────────────────────── */
     { id: 'funeral', g: 'Support and loss', n: 'Funeral and related expenses', h: 'What the funeral cost and who paid for it. Keep the receipts — the practice will ask for them.', f: [
       { k: 'funeralParlour', l: 'Funeral parlour or undertaker', t: 't', ph: 'e.g. Doves, Pretoria North' },
-      { k: 'funeralDate', l: 'Date of the funeral', t: 't', ph: 'YYYY/MM/DD', im: 'numeric', ns: 1 },
+      { k: 'funeralDate', l: 'Date of the funeral', t: 't', ph: 'YYYY/MM/DD', ns: 1 },
       { k: 'funeralType', l: 'Burial or cremation?', t: 'r', o: ['Burial', 'Cremation', 'Other'] },
-      { k: 'funeralCost', l: 'Total cost of the funeral', t: 't', ph: 'e.g. R28 400', im: 'numeric' },
+      { k: 'funeralCost', l: 'Total cost of the funeral', t: 't', ph: 'e.g. R28 400' },
       { k: 'funeralPaidBy', l: 'Who paid for the funeral?', t: 't', wide: 1, ph: 'e.g. I did, with help from my brother' },
       { k: 'funeralPolicy', l: 'Was there a funeral policy?', t: 'r', wide: 1, o: ['Yes, it paid out', 'Yes, it has not paid out', 'No', 'Unsure'] },
       { k: 'funeralPolicyDetail', l: 'Which policy, and how much did it pay?', t: 't', wide: 1,
@@ -502,7 +502,7 @@
     { id: 'declaration', g: 'Declaration', n: 'Signature and consent', h: 'Your confirmation that the information above is correct.', f: [
       { k: 'signName', l: 'Full name', t: 't', req: 1 },
       { k: 'signCapacity', l: 'Signing as', t: 't', req: 1, ph: 'e.g. Widow of the deceased' },
-      { k: 'signDate', l: 'Date', t: 't', req: 1, ph: 'YYYY/MM/DD', im: 'numeric', ns: 1 },
+      { k: 'signDate', l: 'Date', t: 't', req: 1, ph: 'YYYY/MM/DD', ns: 1 },
       { k: 'signature', l: 'Signature', t: 'g', req: 1, wide: 1 } ] }
   ];
 
@@ -575,6 +575,17 @@
   };
   }
 
+  /* MOBILE KEYBOARD. inputmode="numeric" gives iOS a digits-only keypad with
+     no punctuation and no letters — so a field asking for YYYY/MM/DD could not
+     be filled in at all on a phone: there is no slash key. Found by Richard on
+     a real iPhone, which is the only way this shows up; every emulator and
+     desktop browser types it happily.
+     Removed wherever the VALUE needs anything a digits-only keypad lacks:
+     every date, the identity fields that also accept a passport or birth
+     certificate number, and the funeral cost with its R and its space.
+     Deliberately KEPT on the fields whose value really is digits only — a
+     South African ID, a postal code, a year — where the bigger keys are an
+     improvement on a phone rather than an obstacle. */
   var state = makeInitialState();
 
   /* CARL-drplos-001, the serious half. lastPdf lives OUTSIDE state and held
