@@ -588,6 +588,7 @@
   function resetForNewSubmission() {
     state = makeInitialState();
     lastPdf = null;
+    savedFingerprint = null;   /* a new submission has saved nothing yet */
   }
   var lastPdf = null;
   var dialogReturn = null;
@@ -958,6 +959,7 @@
         try { input.setSelectionRange(Math.min(at, cap), Math.min(at, cap)); } catch (err) { /* not all inputs allow it */ }
       }
       bind.set(input.value);
+      refreshSaveButtons();
     });
     return input;
   }
@@ -1893,6 +1895,14 @@
     a.click();
     document.body.removeChild(a);
     window.setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+    /* Option C. Remember what was saved, so the button can stop shouting and
+       say "Progress saved" until something changes again. The browser gives no
+       callback for a download, so this is optimistic — if the claimant cancels
+       the save dialog the button will wrongly read as saved until they type
+       again. That is the better of the two errors: nagging someone who HAS
+       saved teaches them to ignore the warning. */
+    savedFingerprint = formFingerprint();
+    refreshSaveButtons();
   }
 
   /* A saved file is untrusted input. Every value has to pass the same test
@@ -2539,6 +2549,72 @@
     return canvas.toDataURL('image/png');
   }
 
+
+  /* ── The safety net, made visible ───────────────────────────────────────
+     Richard's option C. Reloading this page discards everything, on purpose:
+     nothing is written to localStorage, sessionStorage, cookies or IndexedDB,
+     and the privacy notice publishes that to the claimant as the strongest
+     promise these forms make. Keeping the promise means keeping the loss.
+
+     So the fix is not persistence, it is making the escape hatch impossible to
+     miss. "Save progress to this device" was a quiet ghost button that read
+     the same whether or not there was anything to lose. It now says how much
+     is at stake, and the form says plainly what a reload costs.
+
+     The fingerprint is deliberately cheap and approximate — a count and a
+     length, not a hash of the answers. It only ever has to answer "has
+     anything changed since the last save", and it must never become a second
+     copy of the claimant's data sitting in memory. */
+  var savedFingerprint = null;
+  /* Option C. The form deliberately does not re-render on every keystroke —
+     rebuilding the DOM mid-word would take the cursor with it. So the save
+     button is updated IN PLACE instead: it is the one thing on screen that has
+     to react to typing, because its whole job is to say how much is at risk
+     right now. */
+  var saveButtons = [];
+
+  function refreshSaveButtons() {
+    var unsaved = hasUnsavedWork();
+    var count = answeredCount();
+    saveButtons = saveButtons.filter(function (b) { return b.btn && b.btn.isConnected; });
+    saveButtons.forEach(function (b) {
+      b.btn.textContent = unsaved
+        ? 'Save progress \u2014 ' + count + (count === 1 ? ' answer' : ' answers') + ' not yet saved'
+        : (savedFingerprint === null ? 'Save progress to this device' : 'Progress saved \u2713');
+      b.btn.className = 'btn btn-small ' + (unsaved ? 'btn-primary' : 'btn-ghost');
+      if (b.note) b.note.hidden = !(unsaved && count >= 3);
+    });
+  }
+
+
+  function formFingerprint() {
+    var n = 0, len = 0;
+    Object.keys(state.values).forEach(function (k) {
+      var v = valueOf(k);
+      if (v) { n++; len += v.length; }
+    });
+    Object.keys(state.entries).forEach(function (k) {
+      (state.entries[k] || []).forEach(function (e) {
+        Object.keys(e || {}).forEach(function (kk) {
+          var v = String(e[kk] || ''); if (v) { n++; len += v.length; }
+        });
+      });
+    });
+    Object.keys(state.photos).forEach(function (k) { if (state.photos[k]) { n++; len += 1; } });
+    Object.keys(state.docs).forEach(function (k) { if (state.docs[k]) { n++; len += 1; } });
+    if (state.sketch) { n++; len += 1; }
+    if (state.signature) { n++; len += 1; }
+    return n + ':' + len;
+  }
+
+  function answeredCount() {
+    return parseInt(String(formFingerprint()).split(':')[0], 10) || 0;
+  }
+
+  function hasUnsavedWork() {
+    return answeredCount() > 0 && formFingerprint() !== savedFingerprint;
+  }
+
   /* ── Wiring ────────────────────────────────────────────────────────── */
   /* The warning belongs HERE, not only in the terms of use. On the accident
      form the saved file held one person's answers. On this one it holds the
@@ -2550,10 +2626,22 @@
      the terms is not who we are protecting; someone who taps a button that
      says only "save" is. */
   function addSaveButton(host) {
-    var btn = el('button', 'btn btn-ghost btn-small', 'Save progress to this device');
+    var unsaved = hasUnsavedWork();
+    var count = answeredCount();
+    var btn = el('button', 'btn btn-small ' + (unsaved ? 'btn-primary' : 'btn-ghost'),
+      unsaved
+        ? 'Save progress \u2014 ' + count + (count === 1 ? ' answer' : ' answers') + ' not yet saved'
+        : (savedFingerprint === null ? 'Save progress to this device' : 'Progress saved \u2713'));
     btn.type = 'button';
     btn.addEventListener('click', saveDraft);
     host.appendChild(btn);
+    var note = el('p', 'field-hint');
+    note.textContent = 'Nothing is stored on this website, so closing or reloading this page '
+      + 'will lose these answers. Saving puts a file on your own device that you can load '
+      + 'back in later.';
+    note.hidden = !(unsaved && count >= 3);
+    host.appendChild(note);
+    saveButtons.push({ btn: btn, note: note });
     host.appendChild(el('p', 'field-hint save-warning',
       'The saved file holds everything you have typed, including identity '
       + 'numbers and any document you have photographed. Keep it safe, and do '
