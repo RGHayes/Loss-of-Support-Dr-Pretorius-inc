@@ -544,7 +544,15 @@
 
   /* ── State ─────────────────────────────────────────────────────────────
      Held in memory only. There is deliberately no persistence layer. */
-  var state = {
+  /* CARL-drplos-001. The restore used to clear state by ENUMERATING the keys
+     it knew about, and it missed some — so after a failed send, claimant A's
+     sendAck and recipient survived into claimant B's session, and B could
+     press Send without ever ticking the box. Enumerating is the bug: every
+     field added later is one more that a future restore forgets.
+     One factory, used both to create the state and to reset it, so the two can
+     never drift apart again. */
+  function makeInitialState() {
+    return {
     screen: 'welcome',
     active: null,
     consent: false,
@@ -565,6 +573,22 @@
     paused: false,
     pausedMessage: ''
   };
+  }
+
+  var state = makeInitialState();
+
+  /* CARL-drplos-001, the serious half. lastPdf lives OUTSIDE state and held
+     the previously built document. After a failed send the rescue button is
+     deliberately armed so the claimant can still save their file — and it
+     stayed armed across a restore. On a shared device in a practice waiting
+     room, claimant B restoring their own progress file could press "Save the
+     PDF to this device" and receive claimant A's complete submission: name,
+     identity number, the deceased, dependants, income, document scans and
+     signature. Reset alongside the state, never separately. */
+  function resetForNewSubmission() {
+    state = makeInitialState();
+    lastPdf = null;
+  }
   var lastPdf = null;
   var dialogReturn = null;
 
@@ -1913,21 +1937,10 @@
     if (!draft || typeof draft !== 'object' || draft.app !== DRAFT_APP_ID) return 'notours';
     if (draft.version !== DRAFT_VERSION) return 'version';
 
-    /* ALLISON-forms-018. A progress file is a SNAPSHOT OF A WHOLE FORM, not a
-       patch. This used to write the file's answers on top of whatever was
-       already on screen, so a restore could leave fields the claimant never
-       entered in this session sitting alongside the ones the file carried —
-       and on a shared or re-used browser, one person's answers beside
-       another's. Clear first, then apply. */
-    state.values = {};
-    state.entries = {};
-    state.photos = {};
-    state.docs = {};
-    state.done = {};
-    state.sketch = null;
-    state.signature = null;
-    state.signatureTyped = false;
-    state.isExample = false;
+    /* ALLISON-forms-018 / CARL-drplos-001. A progress file is a snapshot of a
+       whole form, not a patch, and "whole" includes everything the previous
+       claimant left behind — including the built PDF, which is not in state. */
+    resetForNewSubmission();   /* the caller's go() sets the screen */
 
     var values = draft.values && typeof draft.values === 'object' ? draft.values : {};
     Object.keys(RESTORABLE).forEach(function (k) {
