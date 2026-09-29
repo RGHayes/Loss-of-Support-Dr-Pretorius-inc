@@ -1,0 +1,91 @@
+/* ============================================================================
+   Legal pages — privacy notice and terms of use.
+
+   Deliberately plain. These are documents people read under stress, often on a
+   phone, sometimes after an accident. Wide measure, generous line height, real
+   headings, nothing decorative.
+
+   Built on the same tokens as the form, so it is recognisably the same site.
+   ========================================================================= */
+
+.legal {
+  max-width: 68ch;
+  margin: 0 auto;
+  padding: 28px var(--pad) 56px;
+  font-size: 15.5px;
+  line-height: 1.65;
+}
+
+.legal h1 {
+  font-family: var(--font-heading); font-weight: 600; font-size: 30px;
+  line-height: 1.08; letter-spacing: -0.015em; margin: 6px 0 14px;
+}
+.legal h2 {
+  font-family: var(--font-heading); font-weight: 600; font-size: 20px;
+  line-height: 1.15; margin: 34px 0 8px;
+  padding-top: 18px; border-top: 1px solid var(--color-divider);
+}
+.legal h3 {
+  font-family: var(--font-heading); font-weight: 600; font-size: 16px;
+  margin: 22px 0 6px;
+}
+.legal p { margin: 0 0 14px; }
+.legal a { color: var(--color-accent); }
+
+.legal-updated {
+  font-family: var(--font-heading); font-weight: 600; font-size: 10px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--color-neutral-600); margin: 0 0 4px;
+}
+.legal-lede {
+  font-size: 16.5px; line-height: 1.6; color: var(--color-neutral-800);
+  margin-bottom: 26px;
+}
+
+.legal-list { margin: 0 0 16px; padding-left: 20px; }
+.legal-list li { margin-bottom: 9px; }
+
+.legal-dl { margin: 0 0 16px; }
+.legal-dl dt {
+  font-size: 11px; font-weight: 500; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--color-neutral-700);
+  margin-top: 12px;
+}
+.legal-dl dd { margin: 2px 0 0; }
+
+.legal-table {
+  width: 100%; border-collapse: collapse; margin: 0 0 18px; font-size: 14.5px;
+}
+.legal-table th {
+  text-align: left; padding: 8px 10px 8px 0;
+  font-family: var(--font-heading); font-weight: 600; font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-neutral-700);
+  border-bottom: 1px solid var(--color-divider);
+}
+.legal-table td {
+  padding: 10px 10px 10px 0; border-bottom: 1px solid var(--color-hairline);
+  vertical-align: top; line-height: 1.5;
+}
+.legal-table td:first-child { font-weight: 600; white-space: nowrap; }
+
+.legal-address {
+  border-left: 2px solid var(--color-accent); background: var(--color-accent-wash);
+  padding: 13px 15px; line-height: 1.6;
+}
+
+/* The unmissable reminder that placeholders remain. Loud on purpose — a
+   published policy with [SQUARE BRACKETS] in it is worse than none. */
+.legal-todo {
+  border: 2px solid var(--color-warn); background: var(--color-warn-wash);
+  padding: 14px 16px; margin: 0 0 26px; font-size: 14.5px; line-height: 1.55;
+}
+
+.legal-footnote {
+  margin-top: 34px; padding-top: 16px; border-top: 1px solid var(--color-divider);
+  font-size: 13.5px; color: var(--color-neutral-700);
+}
+.legal-back { margin-top: 20px; font-size: 14.5px; }
+
+@media (min-width: 900px) {
+  .legal { padding-top: 40px; }
+}

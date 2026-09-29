@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Loss of support form">
+  <!-- Deliberately no logo or business mark: a plain square in the app's own
+       accent colour with a technical crosshair, the same register-mark
+       language as the ".corner" ticks used throughout the UI. -->
+  <rect width="100" height="100" fill="#971B30"/>
+  <g fill="#ffffff">
+    <rect x="44" y="20" width="12" height="60"/>
+    <rect x="20" y="44" width="60" height="12"/>
+  </g>
+</svg>

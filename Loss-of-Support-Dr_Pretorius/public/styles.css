@@ -1,0 +1,829 @@
+/* ============================================================================
+   Dr Pretorius Inc — Loss of Support Form
+   Built on the "Industry" design system: deep red on a light technical
+   ground, Barlow Condensed headings over Barlow, square corners, hairline
+   borders, "+" registration marks on framed objects.
+
+   Every colour, font and space below comes from the tokens in :root. Do not
+   hard-code a hex, a font name or a raw px value the tokens already carry.
+
+   The fonts are served from this site (public/fonts) rather than from Google,
+   so no third party sees a claimant's IP address or which page they opened.
+   ========================================================================= */
+
+/* — Barlow, latin subset, SIL Open Font License 1.1 (see fonts/OFL.txt) — */
+@font-face {
+  font-family: 'Barlow'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('fonts/barlow-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Barlow'; font-style: normal; font-weight: 500; font-display: swap;
+  src: url('fonts/barlow-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Barlow'; font-style: normal; font-weight: 600; font-display: swap;
+  src: url('fonts/barlow-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Barlow Condensed'; font-style: normal; font-weight: 500; font-display: swap;
+  src: url('fonts/barlow-condensed-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Barlow Condensed'; font-style: normal; font-weight: 600; font-display: swap;
+  src: url('fonts/barlow-condensed-600.woff2') format('woff2');
+}
+
+:root {
+  /* Ground and ink */
+  --color-bg: #f2f2f3;
+  --color-paper: #ffffff;
+  --color-text: #1d1f20;
+  --color-divider: rgba(29, 31, 32, 0.16);
+  --color-hairline: rgba(29, 31, 32, 0.09);
+
+  /* Accent — the same deep red as the practice's accident information form,
+     not tied to any particular practice's brand. Deliberately a different hue
+     from --color-warn below (a brick red-orange) so a primary action and an
+     error notice never read as the same colour. */
+  --color-accent: #971B30;
+  --color-accent-100: #f8eaec;
+  --color-accent-200: #f1d3d8;
+  --color-accent-300: #e0a9b2;
+  --color-accent-400: #c66f7e;
+  --color-accent-500: #ab3b4e;
+  --color-accent-600: #811628;
+  --color-accent-700: #691220;
+  --color-accent-800: #530f1a;
+  --color-accent-900: #400b14;
+  --color-accent-line: rgba(151, 27, 48, 0.45);
+  --color-accent-wash: rgba(151, 27, 48, 0.055);
+  --color-accent-tint: rgba(151, 27, 48, 0.07);
+
+  /* Neutral ramp */
+  --color-neutral-300: #d4d4d7;
+  --color-neutral-400: #b7b7ba;
+  --color-neutral-500: #98989b;
+  --color-neutral-600: #7a7a7d;
+  --color-neutral-700: #5d5d60;
+  --color-neutral-800: #424244;
+  --color-neutral-900: #2b2b2d;
+
+  /* A single warning role, used only for send failures */
+  --color-warn: #8a2b20;
+  --color-warn-wash: rgba(138, 43, 32, 0.06);
+  --color-warn-line: rgba(138, 43, 32, 0.4);
+
+  --font-heading: 'Barlow Condensed', system-ui, sans-serif;
+  --font-body: 'Barlow', system-ui, sans-serif;
+
+  --space-1: 3.4px;
+  --space-2: 6.8px;
+  --space-3: 10.2px;
+  --space-4: 13.6px;
+  --space-6: 20.4px;
+  --space-8: 27.2px;
+
+  --radius-md: 4px;
+
+  --shadow-sm: 0 1px 2px rgba(43, 43, 45, 0.14);
+  --shadow-md: 0 3px 10px rgba(43, 43, 45, 0.16);
+
+  /* Layout, phone first. The desktop breakpoint retunes these in one place. */
+  --pad: 18px;
+  --maxw: none;
+  --cols: 1fr;
+  --top-pad: max(16px, env(safe-area-inset-top));
+  --bottom-pad: max(14px, env(safe-area-inset-bottom));
+  --control-h: 46px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+img { display: block; max-width: 100%; }
+
+/* Interaction states are themed, never left to the browser. */
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+::selection { background: rgba(151, 27, 48, 0.22); }
+
+/* ── Blueprint frame — the wireframe object every framed element wears ───── */
+.blueprint { position: relative; border: 1px solid var(--color-divider); border-radius: 0; }
+.blueprint > .corner {
+  position: absolute; width: 11px; height: 11px;
+  color: rgba(29, 31, 32, 0.55); pointer-events: none;
+}
+.blueprint > .corner::before,
+.blueprint > .corner::after { content: ''; position: absolute; background: currentColor; }
+.blueprint > .corner::before { left: 5px; top: 0; width: 1px; height: 100%; }
+.blueprint > .corner::after { top: 5px; left: 0; width: 100%; height: 1px; }
+.blueprint > .corner.tl { top: -6px; left: -6px; }
+.blueprint > .corner.tr { top: -6px; right: -6px; }
+.blueprint > .corner.bl { bottom: -6px; left: -6px; }
+.blueprint > .corner.br { bottom: -6px; right: -6px; }
+
+/* ── Shared type roles ──────────────────────────────────────────────────── */
+.kicker {
+  font-family: var(--font-heading); font-weight: 600; font-size: 10px; line-height: 1.2;
+  letter-spacing: 0.17em; text-transform: uppercase; color: var(--color-accent);
+}
+.kicker-muted { color: var(--color-neutral-700); letter-spacing: 0.16em; }
+.screen-title {
+  font-family: var(--font-heading); font-weight: 600; font-size: 27px; line-height: 1.08;
+  letter-spacing: -0.015em; margin: 7px 0 6px;
+}
+.screen-lede {
+  font-size: 14px; line-height: 1.55; color: var(--color-neutral-700);
+  margin: 0 0 22px; max-width: 62ch;
+}
+
+/* The shell fills the viewport so the sticky action bar sits on the bottom
+   edge even when a section is short. */
+.app { min-height: 100vh; display: flex; flex-direction: column; }
+@supports (min-height: 100svh) { .app { min-height: 100svh; } }
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.app-header {
+  position: sticky; top: 0; z-index: 30;
+  background: var(--color-paper);
+  border-bottom: 1px solid var(--color-divider);
+  padding: var(--top-pad) var(--pad) 13px;
+}
+.header-inner {
+  max-width: var(--maxw); margin: 0 auto;
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 14px;
+}
+.header-text { min-width: 0; }
+.header-title {
+  font-family: var(--font-heading); font-weight: 600; font-size: 20px; line-height: 1.15;
+  letter-spacing: -0.01em; margin-top: 3px;
+}
+.progress { max-width: var(--maxw); margin: 14px auto 0; }
+.progress[hidden] { display: none; }
+.progress-row {
+  display: flex; justify-content: space-between;
+  font-size: 10px; font-weight: 500; line-height: 1;
+  letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--color-neutral-700); margin-bottom: 6px;
+}
+.progress-track { height: 4px; background: rgba(29, 31, 32, 0.12); }
+.progress-fill { height: 100%; background: var(--color-accent); width: 0%; transition: width 0.25s ease; }
+
+/* ── Body and sidebar ───────────────────────────────────────────────────── */
+.app-body { flex: 1; display: flex; align-items: flex-start; }
+.app-main { flex: 1; min-width: 0; }
+
+.sidebar { display: none; }
+
+/* ── Screens ────────────────────────────────────────────────────────────── */
+.screen { padding: 22px var(--pad) 28px; max-width: var(--maxw); margin: 0 auto; }
+.screen[hidden] { display: none; }
+#screen-welcome { padding-top: 26px; padding-bottom: 30px; }
+
+.welcome-title {
+  font-family: var(--font-heading); font-weight: 600; font-size: 30px; line-height: 1.06;
+  letter-spacing: -0.015em; margin: 0 0 10px;
+}
+.welcome-lede {
+  font-size: 15px; line-height: 1.6; color: var(--color-neutral-800);
+  margin: 0 0 24px; max-width: 62ch;
+}
+.welcome-grid { display: grid; grid-template-columns: var(--cols); gap: 20px; align-items: start; }
+
+.ready-card { padding: 16px 16px 12px; }
+.ready-list { display: flex; flex-direction: column; gap: 10px; font-size: 14.5px; line-height: 1.35; }
+.ready-item { display: flex; gap: 10px; align-items: baseline; }
+.ready-n {
+  color: var(--color-accent); font-family: var(--font-heading);
+  font-weight: 600; font-size: 12px; flex: none;
+}
+.block-label {
+  font-family: var(--font-heading); font-weight: 600; font-size: 10px; line-height: 1.2;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--color-neutral-700); margin-bottom: 10px;
+}
+
+.consent-note {
+  background: var(--color-accent-wash);
+  border-left: 2px solid var(--color-accent);
+  padding: 16px 16px 4px;
+}
+.consent-note .block-label { color: var(--color-accent); }
+.consent-note p { font-size: 13.5px; line-height: 1.6; color: var(--color-neutral-900); margin: 0 0 12px; }
+.consent-note p:last-child { margin-bottom: 14px; }
+/* The link out to the full notice. Quiet, but always present — a policy
+   nobody can reach from the page it governs is not a policy. */
+.consent-links { font-size: 12.5px !important; color: var(--color-neutral-700) !important; }
+.consent-links a { color: var(--color-accent); }
+
+/* Checkbox rows — the box is drawn, never a native control */
+.check-row {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 16px 2px 2px; min-height: 48px; cursor: pointer;
+  background: none; border: 0; text-align: left; width: 100%;
+  font-family: inherit; color: inherit;
+}
+.check-box {
+  width: 22px; height: 22px; flex: none; margin-top: 1px;
+  border: 1px solid rgba(29, 31, 32, 0.4); background: var(--color-paper);
+  display: grid; place-items: center;
+  font-family: var(--font-heading); font-weight: 600; font-size: 13px; color: transparent;
+}
+.check-row[aria-checked='true'] .check-box {
+  background: var(--color-accent); border-color: var(--color-accent); color: var(--color-paper);
+}
+.check-text { font-size: 14.5px; line-height: 1.45; color: var(--color-text); }
+
+/* ── Hub (phone) ────────────────────────────────────────────────────────── */
+.hub-grid { display: grid; grid-template-columns: var(--cols); gap: 0 34px; align-items: start; }
+.hub-group {
+  grid-column: 1 / -1;
+  font-family: var(--font-heading); font-weight: 600; font-size: 10px; line-height: 1.2;
+  letter-spacing: 0.17em; text-transform: uppercase;
+  color: var(--color-neutral-700); margin: 22px 0 4px;
+}
+.hub-row {
+  display: flex; gap: 13px; align-items: center;
+  padding: 13px 2px; border-top: 1px solid var(--color-divider);
+  min-height: 48px; cursor: pointer; width: 100%;
+  background: none; border-left: 0; border-right: 0; border-bottom: 0;
+  text-align: left; font-family: inherit; color: inherit;
+}
+.hub-row:hover { background: var(--color-accent-tint); }
+.hub-row:active { background: rgba(151, 27, 48, 0.13); }
+.hub-n {
+  width: 27px; height: 27px; flex: none;
+  border: 1px solid var(--color-accent-line); display: grid; place-items: center;
+  font-family: var(--font-heading); font-weight: 600; font-size: 12.5px; line-height: 1;
+  color: var(--color-accent);
+}
+.hub-body { flex: 1; min-width: 0; }
+.hub-name, .hub-meta { display: block; }
+.hub-name {
+  font-family: var(--font-heading); font-weight: 600; font-size: 16.5px; line-height: 1.2;
+  letter-spacing: -0.005em;
+}
+.hub-meta { font-size: 11.5px; line-height: 1.4; color: var(--color-neutral-700); margin-top: 1px; }
+.hub-chev { flex: none; color: var(--color-neutral-700); font-size: 17px; line-height: 1; }
+.badge {
+  flex: none; font-family: var(--font-heading); font-weight: 600; font-size: 9.5px; line-height: 1;
+  letter-spacing: 0.11em; text-transform: uppercase;
+}
+.badge-done { color: var(--color-paper); background: var(--color-accent); padding: 5px 7px; }
+.badge-started { color: var(--color-accent); border: 1px solid var(--color-accent-line); padding: 4px 6px; }
+
+/* ── Fields ─────────────────────────────────────────────────────────────── */
+.field-grid { display: grid; grid-template-columns: var(--cols); gap: 0 26px; align-items: start; }
+.field { margin-bottom: 18px; }
+.field.wide { grid-column: 1 / -1; }
+.field > label, .field > .field-label {
+  display: block; font-size: 11px; font-weight: 500; line-height: 1.2;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--color-neutral-800); margin-bottom: 7px;
+}
+.req { color: var(--color-accent); }
+.field-hint { font-size: 12px; line-height: 1.5; color: var(--color-neutral-700); margin: 10px 0 0; }
+
+.input {
+  width: 100%; height: var(--control-h); padding: 0 12px;
+  background: var(--color-paper); border: 1px solid rgba(29, 31, 32, 0.22);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body); font-size: 15px; color: var(--color-text);
+  caret-color: var(--color-accent);
+}
+textarea.input {
+  height: auto; min-height: 118px; padding: 11px 12px; line-height: 1.5; resize: vertical;
+}
+select.input { padding: 0 10px; appearance: none; background-image: none; }
+.input:hover { border-color: rgba(29, 31, 32, 0.45); }
+.input:focus-visible { border-color: var(--color-accent); outline-offset: 0; }
+.input::placeholder { color: var(--color-neutral-700); }
+
+.select-wrap { position: relative; }
+.select-wrap::after {
+  content: ''; position: absolute; right: 14px; top: 50%; width: 8px; height: 8px;
+  border-right: 1px solid var(--color-neutral-700); border-bottom: 1px solid var(--color-neutral-700);
+  transform: translateY(-70%) rotate(45deg); pointer-events: none;
+}
+
+/* Choice chips — square, 44px minimum, single or multi select */
+.choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.choice {
+  min-height: 44px; display: flex; align-items: center; padding: 0 14px;
+  background: var(--color-paper); color: var(--color-neutral-900);
+  border: 1px solid rgba(29, 31, 32, 0.22);
+  font-family: var(--font-heading); font-weight: 600; font-size: 14px; line-height: 1;
+  letter-spacing: 0.01em; cursor: pointer;
+}
+.choice:hover { background: var(--color-accent-100); border-color: var(--color-accent-line); }
+/* aria-pressed is the toggle buttons of a several-choices question;
+   aria-checked is the radios of a one-choice question. Both look the same. */
+.choice[aria-pressed='true'], .choice[aria-checked='true'] {
+  background: var(--color-accent); color: var(--color-paper); border-color: var(--color-accent);
+}
+.choice[aria-pressed='true']:hover, .choice[aria-checked='true']:hover {
+  background: var(--color-accent-600); border-color: var(--color-accent-600);
+}
+
+/* Photographs */
+.photo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+.photo-cell { position: relative; }
+.photo-slot {
+  position: relative; aspect-ratio: 1; width: 100%;
+  border: 1px dashed rgba(29, 31, 32, 0.35); background: var(--color-paper);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 5px; cursor: pointer; padding: 0; font-family: inherit; overflow: hidden;
+}
+.photo-slot:hover { border-color: var(--color-accent); background: var(--color-accent-100); }
+.photo-plus { font-size: 19px; color: var(--color-accent); line-height: 1; }
+.photo-label { font-size: 10px; font-weight: 500; line-height: 1.2; color: var(--color-neutral-700); }
+.photo-slot.filled { border-style: solid; border-color: var(--color-accent-line); }
+.photo-slot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.photo-caption {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 1;
+  background: rgba(151, 27, 48, 0.9); color: var(--color-paper);
+  font-size: 9.5px; font-weight: 500; line-height: 1.2;
+  letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 5px;
+}
+.photo-remove {
+  /* 36px, not 28px: this is a thumb on a phone belonging to someone who may
+     be injured, and 28px was the smallest target on the form. */
+  position: absolute; top: 0; right: 0; z-index: 2; width: 36px; height: 36px;
+  background: rgba(29, 31, 32, 0.72); color: var(--color-paper); border: 0;
+  font-family: var(--font-heading); font-size: 17px; line-height: 1; cursor: pointer;
+}
+.photo-remove:hover { background: var(--color-text); }
+.photo-remove[hidden] { display: none; }
+.photo-slot.busy { opacity: 0.55; pointer-events: none; }
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+
+/* Sketch and signature canvases */
+.draw-frame { background: var(--color-paper); position: relative; touch-action: none; }
+.sketch-frame { height: 230px; }
+.sign-frame {
+  height: 140px; border: 1px solid rgba(29, 31, 32, 0.22); border-radius: var(--radius-md);
+}
+.draw-canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; }
+.draw-empty {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 6px; pointer-events: none;
+}
+.draw-empty[hidden] { display: none; }
+.draw-empty-title { font-family: var(--font-heading); font-weight: 600; font-size: 15px; line-height: 1; color: var(--color-accent); }
+.draw-empty-sub { font-size: 12px; line-height: 1.4; color: var(--color-neutral-700); }
+.sign-line { position: absolute; left: 18px; right: 18px; bottom: 34px; height: 1px; background: rgba(29, 31, 32, 0.25); pointer-events: none; }
+.sign-hint { position: absolute; left: 18px; bottom: 12px; font-size: 11px; line-height: 1.2; color: var(--color-neutral-700); pointer-events: none; }
+.draw-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+
+/* ── Review ─────────────────────────────────────────────────────────────── */
+#screen-review { position: relative; }
+/* No logo and no watermark on this build — the review screen is plain paper. */
+.review-inner { position: relative; max-width: var(--maxw); margin: 0 auto; }
+
+.notice { border: 1px solid var(--color-accent-line); background: var(--color-accent-wash); padding: 12px 13px; margin-bottom: 20px; }
+.notice .block-label { color: var(--color-accent); margin-bottom: 5px; }
+.notice-body { font-size: 13px; line-height: 1.5; color: var(--color-neutral-900); }
+.notice-warn { border-color: var(--color-warn-line); background: var(--color-warn-wash); }
+.notice-warn .block-label { color: var(--color-warn); }
+
+.review-group {
+  font-family: var(--font-heading); font-weight: 600; font-size: 10px; line-height: 1.2;
+  letter-spacing: 0.17em; text-transform: uppercase;
+  color: var(--color-neutral-700); margin: 0 0 8px;
+}
+.review-cards { display: grid; grid-template-columns: var(--cols); gap: 12px; align-items: start; margin-bottom: 12px; }
+.review-card { background: rgba(255, 255, 255, 0.55); border: 1px solid rgba(29, 31, 32, 0.18); padding: 14px 14px 12px; }
+.review-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.review-name {
+  font-family: var(--font-heading); font-weight: 600; font-size: 17px; line-height: 1.15;
+  letter-spacing: -0.005em; min-width: 0;
+}
+.review-edit {
+  flex: none; font-family: var(--font-heading); font-weight: 600; font-size: 10.5px; line-height: 1;
+  letter-spacing: 0.13em; text-transform: uppercase; color: var(--color-accent);
+  padding: 8px 0 8px 10px; cursor: pointer; background: none; border: 0;
+}
+.review-edit:hover { color: var(--color-accent-700); }
+.review-row { display: flex; gap: 12px; align-items: baseline; padding: 6px 0; border-top: 1px solid var(--color-hairline); }
+.review-label {
+  width: 112px; flex: none; font-size: 10.5px; font-weight: 500; line-height: 1.35;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-neutral-700);
+}
+.review-value { flex: 1; min-width: 0; font-size: 14px; line-height: 1.45; white-space: pre-line; overflow-wrap: break-word; }
+.review-empty { flex: 1; min-width: 0; font-size: 13.5px; line-height: 1.45; color: var(--color-neutral-700); }
+.review-attach {
+  display: flex; gap: 8px; align-items: center; padding: 9px 0 1px;
+  border-top: 1px solid var(--color-hairline);
+  font-size: 12.5px; font-weight: 500; line-height: 1.3; color: var(--color-accent);
+}
+.review-attach::before { content: ''; width: 6px; height: 6px; background: var(--color-accent); flex: none; }
+
+.next-block { border: 1px solid rgba(29, 31, 32, 0.18); background: rgba(255, 255, 255, 0.55); padding: 14px 14px 12px; margin-top: 6px; }
+.next-body { font-size: 13.5px; line-height: 1.6; color: var(--color-neutral-800); max-width: 70ch; }
+.next-body strong { font-weight: 600; }
+
+/* ── Sent ───────────────────────────────────────────────────────────────── */
+.sent-wrap { max-width: 62ch; }
+.sent-mark {
+  width: 54px; height: 54px; display: grid; place-items: center; margin-bottom: 16px;
+  border: 1px solid var(--color-accent); color: var(--color-accent);
+  font-family: var(--font-heading); font-weight: 600; font-size: 26px; line-height: 1;
+}
+.sent-list { margin: 0; padding-left: 16px; font-size: 14px; line-height: 1.65; color: var(--color-neutral-800); }
+
+/* ── Action bar ─────────────────────────────────────────────────────────── */
+.action-bar {
+  position: sticky; bottom: 0; z-index: 30;
+  background: var(--color-paper); border-top: 1px solid var(--color-divider);
+  padding: 13px var(--pad) var(--bottom-pad);
+}
+.action-inner {
+  max-width: var(--maxw); margin: 0 auto;
+  display: flex; flex-direction: column; justify-content: stretch; gap: 9px;
+}
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  cursor: pointer; text-decoration: none;
+  font-family: var(--font-heading); font-weight: 600; line-height: 1.2;
+  color: var(--color-text); background: transparent;
+  border: 1px solid transparent; border-radius: var(--radius-md);
+  padding: 0 16px;
+}
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { background: var(--color-accent); color: var(--color-paper); }
+.btn-primary:hover:not(:disabled) { background: var(--color-accent-600); }
+.btn-primary:active:not(:disabled) { background: var(--color-accent-700); }
+.btn-secondary { border-color: var(--color-divider); }
+.btn-secondary:hover:not(:disabled) { background: rgba(29, 31, 32, 0.07); }
+.btn-secondary:active:not(:disabled) { background: rgba(29, 31, 32, 0.14); }
+.btn-ghost { color: var(--color-accent); }
+.btn-ghost:hover:not(:disabled) { background: rgba(151, 27, 48, 0.1); }
+.btn-small { height: 38px; font-size: 13px; }
+
+.action-inner .btn-primary { height: 50px; width: 100%; font-size: 16px; letter-spacing: 0.02em; }
+.action-inner .btn-secondary { height: 46px; width: 100%; font-size: 14px; order: 1; }
+.action-inner .btn[hidden] { display: none; }
+
+/* ── Demo button (development only) ─────────────────────────────────────── */
+.demo-dock {
+  position: fixed; right: 0; top: 42%; z-index: 40;
+  transform: translateY(-50%) rotate(180deg); writing-mode: vertical-rl;
+  background: var(--color-accent-800); color: var(--color-paper);
+  border: 0; padding: 14px 8px; cursor: pointer;
+  font-family: var(--font-heading); font-weight: 600; font-size: 12px;
+  letter-spacing: 0.12em; text-transform: uppercase;
+}
+.demo-dock:hover { background: var(--color-accent); }
+.demo-dock[hidden] { display: none; }
+
+/* On a phone the dock lies across the right-hand edge, exactly where the
+   Remove button of a repeatable entry and the × of a photograph sit. Move the
+   content clear of it rather than leaving two controls stacked on one spot.
+   A laptop has room to spare, so nothing moves there. */
+body.has-demo .screen { padding-right: calc(var(--pad) + 34px); }
+@media (min-width: 900px) {
+  body.has-demo .screen { padding-right: var(--pad); }
+}
+
+/* ── Dialog ─────────────────────────────────────────────────────────────── */
+.dialog-backdrop {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(29, 31, 32, 0.45);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.dialog-backdrop[hidden] { display: none; }
+.dialog { background: var(--color-paper); box-shadow: var(--shadow-md); padding: 20px; width: 100%; max-width: 340px; }
+.dialog-title { font-family: var(--font-heading); font-weight: 600; font-size: 20px; line-height: 1.15; margin: 0 0 6px; }
+.dialog-body { font-size: 13.5px; line-height: 1.55; color: var(--color-neutral-800); margin: 0 0 14px; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+
+/* ── Recipient chooser ──────────────────────────────────────────────────── */
+.recipient-option {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  background: var(--color-paper); border: 1px solid rgba(29, 31, 32, 0.22);
+  border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 8px;
+  font-family: inherit; color: inherit; min-height: 56px;
+}
+.recipient-option:hover { border-color: var(--color-accent); background: var(--color-accent-100); }
+.recipient-option:active { background: var(--color-accent-200); }
+.recipient-name {
+  display: block; font-family: var(--font-heading); font-weight: 600;
+  font-size: 17px; line-height: 1.2;
+}
+.recipient-email {
+  display: block; font-size: 12.5px; line-height: 1.4;
+  color: var(--color-neutral-700); overflow-wrap: break-word;
+}
+
+/* ── Honeypot — off-screen, never shown, never announced ────────────────── */
+.hp-field { position: absolute; left: -9999px; top: 0; width: 1px; height: 1px; overflow: hidden; }
+
+/* ── Busy overlay while the PDF is built and sent ───────────────────────── */
+.busy-backdrop {
+  position: fixed; inset: 0; z-index: 60; background: rgba(242, 242, 243, 0.88);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.busy-backdrop[hidden] { display: none; }
+.busy-card { text-align: center; }
+.busy-title { font-family: var(--font-heading); font-weight: 600; font-size: 22px; line-height: 1.15; margin-bottom: 6px; }
+.busy-body { font-size: 13.5px; color: var(--color-neutral-700); }
+
+/* ═══ Desktop ═══════════════════════════════════════════════════════════ */
+@media (min-width: 900px) {
+  :root {
+    --pad: 40px;
+    --maxw: 980px;
+    --cols: repeat(2, minmax(0, 1fr));
+    --top-pad: 20px;
+    --bottom-pad: 16px;
+  }
+
+  .app-body { min-height: 0; }
+
+  /* The section list becomes a permanent sidebar, so no hub screen is needed. */
+  .sidebar {
+    display: block; width: 268px; flex: none; align-self: stretch;
+    border-right: 1px solid rgba(29, 31, 32, 0.14);
+    background: rgba(255, 255, 255, 0.55);
+    padding: 20px 0 26px;
+  }
+  .sidebar[hidden] { display: none; }
+  /* Twenty sections, not the accident form's fifteen — the list is now taller
+     than a laptop screen. A sticky block taller than the viewport pins its top
+     and puts its bottom permanently out of reach: measured at 1280x800 the
+     "Review & send" and "Save progress" controls sat 642px below the fold and
+     no amount of scrolling brought them back, because the block is stuck.
+
+     So the block is capped at the viewport and only the LIST scrolls. The
+     heading, the review link and the save block are outside that scroller, so
+     they stay on screen whatever the section count grows to. */
+  .sidebar-sticky {
+    position: sticky; top: 116px;
+    display: flex; flex-direction: column;
+    max-height: calc(100vh - 116px - 26px);
+  }
+  #sidebarList {
+    flex: 1 1 auto; min-height: 0; overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .sidebar-heading {
+    font-family: var(--font-heading); font-weight: 600; font-size: 10px; line-height: 1.2;
+    letter-spacing: 0.17em; text-transform: uppercase;
+    color: var(--color-neutral-700); padding: 0 20px 10px;
+  }
+  .side-group {
+    font-size: 9.5px; font-weight: 500; line-height: 1.2;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--color-neutral-700); padding: 14px 20px 5px;
+  }
+  .side-row {
+    display: flex; gap: 10px; align-items: center; width: 100%;
+    padding: 8px 20px; min-height: 40px; cursor: pointer; text-align: left;
+    background: transparent; border: 0; border-left: 2px solid transparent;
+    font-family: inherit; color: inherit;
+  }
+  .side-row:hover { background: var(--color-accent-tint); }
+  .side-row.current { border-left-color: var(--color-accent); background: var(--color-accent-tint); }
+  .side-n {
+    font-family: var(--font-heading); font-weight: 600; font-size: 11px; line-height: 1;
+    color: var(--color-accent); width: 16px; flex: none;
+  }
+  .side-name { flex: 1; min-width: 0; font-size: 13.5px; line-height: 1.3; }
+  .side-done { flex: none; width: 7px; height: 7px; background: var(--color-accent); }
+  .side-review {
+    margin: 16px 20px 0; padding-top: 13px; width: calc(100% - 40px);
+    border: 0; border-top: 1px solid rgba(29, 31, 32, 0.14); background: none;
+    font-family: var(--font-heading); font-weight: 600; font-size: 12px; line-height: 1;
+    letter-spacing: 0.13em; text-transform: uppercase; color: var(--color-accent);
+    cursor: pointer; text-align: left;
+  }
+  .side-review:hover { color: var(--color-accent-700); }
+  .side-review, .side-save { flex: none; }
+
+  .action-inner { flex-direction: row; justify-content: flex-end; }
+  .action-inner .btn-primary { width: auto; min-width: 210px; }
+  .action-inner .btn-secondary { width: auto; order: 0; }
+
+  /* Three across, two rows — the six slots stay a block, not a ragged strip. */
+  .photo-grid { max-width: 470px; }
+
+  /* Two review cards to a row, but only while each still has room for a long
+     answer such as an email address. */
+  .review-cards { grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); }
+
+  .sketch-frame { height: 320px; }
+  .sign-frame { height: 170px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-fill { transition: none; }
+}
+
+/* Printing is not the route — the PDF is. Keep a sane fallback anyway. */
+@media print {
+  .app-header, .action-bar, .sidebar, .demo-dock { display: none !important; }
+}
+
+/* Save-progress control — deliberately outside the action bar, so the two
+   designed buttons keep their places. */
+.hub-save { display: flex; flex-direction: column; align-items: flex-start; margin-top: 20px; }
+.hub-save .btn { padding-left: 0; }
+.side-save { padding: 12px 18px 0; }
+/* What the saved file actually contains — see addSaveButton() in app.js. */
+.save-warning { max-width: 46ch; }
+.hub-save .save-warning { margin-top: 4px; }
+.side-save .save-warning { font-size: 11px; line-height: 1.45; }
+
+/* ═══ Added 2026-09-20 ═══════════════════════════════════════════════════ */
+
+/* ── Headings in capitals ───────────────────────────────────────────────
+   The firm asked for every page and section heading in full capitals. It is
+   done here rather than by typing the words in capitals, because a screen
+   reader given "PERSONAL AND CONTACT DETAILS" as literal text may spell it
+   out letter by letter; given sentence case plus this rule, it reads it as
+   words and the claimant still sees capitals.
+
+   Condensed type set tight looks wrong in capitals, so the negative tracking
+   each of these carries is undone at the same time. */
+.welcome-title, .screen-title, .header-title, .dialog-title,
+.hub-name, .side-name, .review-name, .field-heading {
+  text-transform: uppercase;
+}
+.welcome-title, .screen-title, .dialog-title { letter-spacing: 0.012em; }
+.header-title { letter-spacing: 0.02em; }
+.hub-name, .review-name { letter-spacing: 0.028em; }
+.side-name { letter-spacing: 0.035em; }
+
+/* ── The disclaimer on the welcome screen ───────────────────────────────
+   Deliberately the first thing under the opening paragraph, and deliberately
+   not styled as a warning: it is important, not alarming. */
+.disclaimer {
+  border: 1px solid var(--color-accent-line);
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-accent-wash);
+  padding: 14px 15px 4px; margin: 0 0 24px; max-width: 72ch;
+}
+.disclaimer-label {
+  font-family: var(--font-heading); font-weight: 600; font-size: 11px; line-height: 1.2;
+  letter-spacing: 0.15em; text-transform: uppercase;
+  color: var(--color-accent); margin-bottom: 7px;
+}
+.disclaimer p { font-size: 14px; line-height: 1.6; color: var(--color-neutral-900); margin: 0 0 12px; }
+.disclaimer strong { font-weight: 600; }
+
+/* ── The condolence line on the welcome screen ──────────────────────────
+   The first thing a bereaved person reads on this form. Deliberately quiet:
+   no border, no wash, no label — a sentence in the firm's voice, set slightly
+   larger than the body, so it reads as a person speaking rather than a notice
+   to be acknowledged. */
+.condolence { max-width: 68ch; margin: 0 0 22px; }
+.condolence p {
+  font-size: 15px; line-height: 1.65; color: var(--color-neutral-800);
+  margin: 0; padding-left: 13px; border-left: 2px solid var(--color-accent-300);
+}
+
+/* ── An alert at the top of a section ───────────────────────────────────
+   One line, in capitals, above the fields — used where leaving something out
+   costs a claimant their claim, as it does on the dependants section.
+
+   Stored in SENTENCE case in app.js and capitalised here, for the same reason
+   the headings are: a screen reader handed literal capitals may spell them
+   out letter by letter. Do not "fix" this by typing the string in capitals. */
+.section-alert {
+  font-family: var(--font-heading); font-weight: 600;
+  font-size: 13px; line-height: 1.35; letter-spacing: 0.075em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent-line);
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-accent-wash);
+  padding: 11px 13px; margin: 0 0 22px; max-width: 62ch;
+}
+.section-alert[hidden] { display: none; }
+
+@media (min-width: 900px) {
+  .section-alert { font-size: 14px; }
+}
+
+/* ── A heading inside a section ─────────────────────────────────────────
+   "Residential address", "Citizenship" — a rule and a label that break a
+   long section into parts a claimant can hold in their head. */
+.field-heading {
+  font-family: var(--font-heading); font-weight: 600; font-size: 12px; line-height: 1.2;
+  letter-spacing: 0.15em;
+  color: var(--color-accent); margin: 10px 0 16px;
+  padding-top: 13px; border-top: 1px solid var(--color-divider);
+}
+.field-grid > .field-heading:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+
+/* ── Repeatable entries ─────────────────────────────────────────────────
+   Employers, qualifications, witnesses, injuries, hospitals. Each entry is a
+   framed block with its own number, so that "Employer 2" is a place on the
+   page and not a guess about which box belongs to which job. */
+.repeat-list { display: flex; flex-direction: column; gap: 14px; }
+.repeat-item {
+  border: 1px solid var(--color-divider); background: rgba(255, 255, 255, 0.6);
+  padding: 0 14px 2px;
+}
+.repeat-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin: 0 -14px 14px; padding: 9px 14px;
+  background: var(--color-accent-100); border-bottom: 1px solid var(--color-accent-line);
+}
+.repeat-n {
+  font-family: var(--font-heading); font-weight: 600; font-size: 12px; line-height: 1.2;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-accent-800);
+}
+.repeat-remove {
+  flex: none; min-height: 32px; padding: 0 10px; cursor: pointer;
+  background: none; border: 1px solid var(--color-accent-line); color: var(--color-accent-700);
+  font-family: var(--font-heading); font-weight: 600; font-size: 11px; line-height: 1;
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+.repeat-remove:hover { background: var(--color-paper); border-color: var(--color-warn-line); color: var(--color-warn); }
+.repeat-add {
+  display: inline-flex; align-items: center; min-height: 46px; margin-top: 14px;
+  padding: 0 18px; cursor: pointer;
+  background: var(--color-paper); border: 1px dashed var(--color-accent-line);
+  color: var(--color-accent);
+  font-family: var(--font-heading); font-weight: 600; font-size: 14px; line-height: 1;
+  letter-spacing: 0.04em;
+}
+.repeat-add:hover:not(:disabled) { background: var(--color-accent-100); border-style: solid; }
+.repeat-add:disabled { opacity: 0.45; cursor: not-allowed; }
+/* The last field in an entry must not push a gap below the frame. */
+.repeat-item .field-grid > .field:last-child { margin-bottom: 14px; }
+
+/* ── Pages of the accident report ───────────────────────────────────────
+   Four across on a laptop, two on a phone, and taller than wide because a
+   page of a report is. */
+.doc-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.doc-grid .photo-slot { aspect-ratio: 1 / 1.3; }
+
+/* ── Typing a name instead of signing ───────────────────────────────────
+   The freehand box is unreachable from a keyboard, and hard work for someone
+   with an injured hand, so the same thing can be typed. */
+.sign-alt { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--color-hairline); }
+.sign-alt-label {
+  font-size: 11px; font-weight: 500; line-height: 1.2;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--color-neutral-800); margin-bottom: 8px;
+}
+.sign-alt-row { display: flex; flex-direction: column; gap: 8px; }
+.sign-alt-row .btn { align-self: flex-start; }
+
+/* ── Review: the heading above one repeated entry ───────────────────── */
+.review-sub {
+  margin: 10px 0 0; padding-top: 8px; border-top: 1px solid var(--color-divider);
+  font-family: var(--font-heading); font-weight: 600; font-size: 11px; line-height: 1.2;
+  letter-spacing: 0.13em; text-transform: uppercase; color: var(--color-accent);
+}
+.review-card > .review-sub:first-of-type { border-top: 0; }
+
+@media (min-width: 900px) {
+  .doc-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 470px; }
+  .sign-alt-row { flex-direction: row; align-items: center; }
+  .sign-alt-row .input { max-width: 320px; }
+  .sign-alt-row .btn { align-self: auto; flex: none; }
+  .repeat-item { padding: 0 16px 2px; }
+  .repeat-head { margin: 0 -16px 16px; padding: 10px 16px; }
+}
+
+/* ── The outstanding-answers list on the review screen ────────────────────
+   Each row names the section and the questions still blank, and goes there. */
+.outstanding-list { display: flex; flex-direction: column; gap: 6px; margin-top: 11px; }
+.outstanding-jump {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  min-height: 46px; padding: 8px 12px;
+  background: var(--color-paper); border: 1px solid var(--color-accent-line);
+  font-family: inherit; color: inherit;
+}
+.outstanding-jump:hover { background: var(--color-accent-100); border-color: var(--color-accent); }
+.outstanding-where {
+  display: block; font-family: var(--font-heading); font-weight: 600;
+  font-size: 12px; line-height: 1.25; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--color-accent);
+}
+.outstanding-what {
+  display: block; font-size: 13px; line-height: 1.4; color: var(--color-neutral-800); margin-top: 2px;
+}
+
+/* ── Rescue path when a send fails ────────────────────────────────────────
+   The finished PDF exists; only delivery failed. Let them keep it. */
+.notice-rescue { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--color-warn-line); }
+.notice-rescue[hidden] { display: none; }
+.notice-rescue .notice-body { margin-bottom: 10px; }

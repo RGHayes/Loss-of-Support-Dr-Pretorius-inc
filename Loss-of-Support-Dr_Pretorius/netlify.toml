@@ -1,0 +1,44 @@
+# Netlify configuration — Loss of Support Form.
+#
+# The functions directory deliberately sits OUTSIDE the publish directory. If it
+# were inside, Netlify would serve send-form.js as a static file instead of
+# running it as a function — the endpoint would 404 and the source, including
+# the shape of every check it makes, would be downloadable.
+#
+# `public/_headers` is the source of truth for headers; the block below mirrors
+# it so the rules survive even if _headers is ever missed.
+
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; upgrade-insecure-requests"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    X-Robots-Tag = "noindex, nofollow, noarchive"
+    Referrer-Policy = "no-referrer"
+    Permissions-Policy = "geolocation=(), camera=(), microphone=(), payment=(), usb=(), interest-cohort=()"
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Resource-Policy = "same-origin"
+    Cache-Control = "no-store"
+
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[redirects]]
+  from = "/api/send-form"
+  to = "/.netlify/functions/send-form"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/form-recipients"
+  to = "/.netlify/functions/form-recipients"
+  status = 200
+  force = true
