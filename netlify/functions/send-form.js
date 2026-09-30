@@ -48,8 +48,16 @@
  *                       no configuration in which there is no floor, which
  *                       is what every document here already claimed and
  *                       the code did not do (CARL-eco-006).
- *   REPORT_FROM_EMAIL   optional — overrides the sender. Must be on a domain
- *                                 verified in Resend, or Resend refuses (403).
+ *   REPORT_FROM_EMAIL   REQUIRED. There is no fallback and this function
+ *                       refuses to start without it - see the check on
+ *                       fromAddress below. It must be on a domain verified
+ *                       in Resend, or Resend answers 403 on every send with
+ *                       no bounce to see, which is why an unverified default
+ *                       is worse than no default. This line said 'optional'
+ *                       until 30 September 2026, contradicting both the code
+ *                       ten lines of CLAUDE.md, and the three READMEs that
+ *                       said the same thing were corrected the same day while
+ *                       this one was missed.
  *   IFTFC_CONSOLE_URL   optional — e.g. https://iftfc-console.netlify.app
  *   IFTFC_CONFIG_KEY    optional — the console's config:read key
  *   IFTFC_EVENT_KEY     optional — the console's event:write key

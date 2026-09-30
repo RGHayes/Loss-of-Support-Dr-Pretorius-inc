@@ -17,6 +17,9 @@ tells the next reader not to look.
 - **Never add persistence.** No `localStorage`, `sessionStorage`, cookies or
   IndexedDB. "Save progress" downloads a file to the claimant's own device and
   sends it nowhere.
+  <!-- check: absent "localStorage.setItem" in public/app.js -->
+  <!-- check: absent "sessionStorage.setItem" in public/app.js -->
+  <!-- check: absent "document.cookie =" in public/app.js -->
 - **A recipient-domain floor always applies, and you must not make it
   conditional again.** `send-form.js` and `form-recipients.js` filter every
   address against `effectiveFloor()`: `RECIPIENT_DOMAINS` when it is set,
@@ -38,9 +41,16 @@ tells the next reader not to look.
   REPLACES it, so a configured value can be *wider*. That is deliberate — the
   threat model is a compromised console, which cannot write an environment
   variable — but do not describe it as a minimum that cannot be undercut.
+  <!-- check: present "effectiveFloor()" in netlify/functions/send-form.js -->
+  <!-- check: present "effectiveFloor()" in netlify/functions/form-recipients.js -->
+  <!-- check: absent "applyFloor = (list) => (floor.length" in netlify/functions/send-form.js -->
+  <!-- check: absent "applyFloor = (list) => (floor.length" in netlify/functions/form-recipients.js -->
 - **No `innerHTML`, `outerHTML`, `insertAdjacentHTML` or `eval`.** Verified: zero
   occurrences in this repo's own code today — the only mention is the rule itself.
   Everything is a real node with `textContent`.
+  <!-- check: absent ".innerHTML =" in public/app.js -->
+  <!-- check: absent ".outerHTML =" in public/app.js -->
+  <!-- check: absent "insertAdjacentHTML" in public/app.js -->
 - **Never print a secret value.** Never read or display `.env*`, `*.pem`, `*.key`.
   `RESEND_API_KEY`, `IFTFC_CONFIG_KEY` and `IFTFC_EVENT_KEY` are never logged,
   never echoed in an error, and never sent to the browser.
@@ -99,3 +109,6 @@ you.** One wrong string was found three separate times in three separate passes.
 | `netlify/functions/send-form.js` | The send path. Read the section above first |
 | `netlify/functions/form-recipients.js` | Recipient menu, rate-limited, console-backed |
 | `VENDORED.md` | Pinned third-party versions and the advisory against them |
+
+  <!-- check: absent "REPORT_FROM_EMAIL ||" in netlify/functions/send-form.js -->
+  <!-- check: present "REPORT_FROM_EMAIL   REQUIRED" in netlify/functions/send-form.js -->
