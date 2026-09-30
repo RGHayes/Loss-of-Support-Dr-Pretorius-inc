@@ -17,11 +17,27 @@ tells the next reader not to look.
 - **Never add persistence.** No `localStorage`, `sessionStorage`, cookies or
   IndexedDB. "Save progress" downloads a file to the claimant's own device and
   sends it nowhere.
-- **`RECIPIENT_DOMAINS` is required, not optional.** It is the floor this site
-  enforces itself: the only domains a completed form may ever reach, and the one
-  control the console **cannot** widen. With it unset there is no floor at all.
-  A compromised console must never be able to deliver Dr Pretorius Inc's claimant
-  documents anywhere but Dr Pretorius Inc.
+- **A recipient-domain floor always applies, and you must not make it
+  conditional again.** `send-form.js` and `form-recipients.js` filter every
+  address against `effectiveFloor()`: `RECIPIENT_DOMAINS` when it is set,
+  and `DEFAULT_DOMAINS` (`drpretoriusinc.co.za`, `iftfc.co.za`) when it is not.
+  A compromised console must never be able to deliver Dr Pretorius Inc's
+  claimant documents anywhere but Dr Pretorius Inc.
+
+  **This rule used to read "`RECIPIENT_DOMAINS` is required, not optional …
+  with it unset there is no floor at all" — and the code said the opposite**
+  (`applyFloor` was the identity function when the variable was unset). That
+  is `CARL-eco-006`, and it is worth understanding why it was reopened rather
+  than closed with the code fix: an agent reading the old rule would have
+  been told the code was wrong, and could have "fixed" the floor back to
+  conditional to make the code obey the rule — reintroducing `CARL-eco-004`
+  exactly. **The file that exists to prevent a class of mistake was causing
+  it.** Found by Vera on review, not by the author.
+
+  Note what `DEFAULT_DOMAINS` is and is not: setting `RECIPIENT_DOMAINS`
+  REPLACES it, so a configured value can be *wider*. That is deliberate — the
+  threat model is a compromised console, which cannot write an environment
+  variable — but do not describe it as a minimum that cannot be undercut.
 - **No `innerHTML`, `outerHTML`, `insertAdjacentHTML` or `eval`.** Verified: zero
   occurrences in this repo's own code today — the only mention is the rule itself.
   Everything is a real node with `textContent`.

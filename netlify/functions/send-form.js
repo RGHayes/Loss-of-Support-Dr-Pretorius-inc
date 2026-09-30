@@ -41,17 +41,13 @@
  * with the scope set to include Functions):
  *   RESEND_API_KEY      required — the Resend API key
  *   REPORT_TO_EMAIL     required — fallback allowlist, comma separated
- *   RECIPIENT_DOMAINS   strongly recommended — the domain floor, comma
- *                                 separated. THE DOMAINS OF THE ADDRESSES YOU
- *                                 ACTUALLY SEND TO — the part after the @ in
- *                                 REPORT_TO_EMAIL — not the client practice's
- *                                 domain. Sending to richard@iftfc.co.za means
- *                                 "iftfc.co.za", even though the form is for
- *                                 Dr Pretorius Inc. Get this wrong and the
- *                                 floor silently excludes every recipient and
- *                                 the form goes live unable to send.
- *                                 When blank the floor is off and the console's
- *                                 list is trusted as-is.
+ *   RECIPIENT_DOMAINS   optional NOW, and the floor is not. If unset, a
+ *                       built-in floor of drpretoriusinc.co.za and
+ *                       iftfc.co.za applies instead - see DEFAULT_DOMAINS
+ *                       below. Setting this REPLACES that list. There is
+ *                       no configuration in which there is no floor, which
+ *                       is what every document here already claimed and
+ *                       the code did not do (CARL-eco-006).
  *   REPORT_FROM_EMAIL   optional — overrides the sender. Must be on a domain
  *                                 verified in Resend, or Resend refuses (403).
  *   IFTFC_CONSOLE_URL   optional — e.g. https://iftfc-console.netlify.app
@@ -230,6 +226,60 @@ const parseList = (v) => String(v || '')
   .map((x) => x.trim().toLowerCase())
   .filter(Boolean);
 
+/* ---- The domain floor -----------------------------------------------------
+   CARL-eco-004. (This block first cited CARL-eco-006 as a second floor finding.
+   It is not one - eco-006 is "no project-level agent instruction file with
+   concrete security mandates exists in any of the four repos", the CLAUDE.md
+   finding. Caught by Vera on review. Closing eco-006 on this evidence would have
+   closed a live, unrelated defect.)
+
+   Every document in this repo said RECIPIENT_DOMAINS was the floor the console
+   cannot widen - CLAUDE.md called it "required, not optional". The code said
+   otherwise: `floor.length ? filter : list`, so with the variable UNSET there
+   was no floor at all and the console could have directed a claimant's medical
+   report to any address on earth. Three headers said "strongly recommended",
+   one said "optional", and only reading the code told you which was true.
+
+   Worse, the absence was SILENT. Nothing logged it, nothing reported it, and
+   diagnose() had no branch for it - a site with no floor described itself as
+   healthy. That unverifiability was the defect, not just the gap.
+
+   So the floor is now unconditional: with RECIPIENT_DOMAINS unset, DEFAULT_DOMAINS
+   applies, and there is no path through this file that filters against nothing.
+
+   WHY THIS CANNOT BREAK LIVE DELIVERY - measured, 30 September 2026, not
+   assumed. GET /api/form-recipients on all four live sites returned recipients
+   on exactly two domains each: the firm's own and iftfc.co.za. Whatever the
+   floor is set to today, it therefore already permits both, so a built-in floor
+   of those two domains cannot remove an address that is currently delivering.
+
+   RECIPIENT_DOMAINS still REPLACES this when set, rather than intersecting with
+   it. That is deliberate. The threat model is a compromised console, and the
+   console cannot write an environment variable - while an operator adding the
+   firm's real domain in a few days must not need a code change to do it.
+
+   iftfc.co.za is CARL-eco-001: the operator's own domain is a live delivery
+   target on a client's claimant form. It is here because it is here today, and
+   it comes out of this list the moment the firm's own addresses replace it. 
+   ON THE NAME, because the first one lied. This was called BUILTIN_FLOOR. A
+   "floor" is something nothing can go under, and this is not that: a configured
+   RECIPIENT_DOMAINS REPLACES this list rather than intersecting with it, so
+   RECIPIENT_DOMAINS=co.za admits every .co.za domain on earth and is wider than
+   the built-in. That replacement is deliberate - the threat model is a
+   compromised CONSOLE, which cannot write an environment variable, and an
+   operator adding the firm's real domain in a few days must not need a code
+   change. But the name claimed a guarantee the code does not make, which is the
+   exact habit this project keeps having to unlearn. It is DEFAULT_DOMAINS.
+   */
+const DEFAULT_DOMAINS = ['drpretoriusinc.co.za', 'iftfc.co.za'];
+
+function effectiveFloor() {
+  const set = parseList(process.env.RECIPIENT_DOMAINS)
+    .map((d) => String(d).trim().toLowerCase().replace(/^@/, ''))
+    .filter(Boolean);
+  return set.length ? set : DEFAULT_DOMAINS.slice();
+}
+
 /* Bucketed rather than exact. With a fixed template the exact size of a PDF
    correlates with how many photographs and how much text a submission held,
    which is a fingerprint linking submissions to one another. The bucket says
@@ -277,11 +327,15 @@ async function withTimeout(promise, ms) {
    so it is a floor on the failure, not a guarantee. */
 async function loadSettings() {
   const fallback = parseList(process.env.REPORT_TO_EMAIL).filter((a) => EMAIL_RE.test(a));
-  const floor = parseList(process.env.RECIPIENT_DOMAINS);
+  const floor = effectiveFloor();
 
-  const applyFloor = (list) => (floor.length
-    ? list.filter((a) => floor.indexOf(String(a).split('@')[1] || '') !== -1)
-    : list);
+  /* No conditional - the floor is never empty, see effectiveFloor. The '|| \'\''
+     matters: split('@')[1] is undefined for a string with no @, and .toLowerCase()
+     on that THROWS rather than filtering it out. The original had this guard; my
+     rewrite dropped it and Vera caught it on review. Unreachable today behind
+     EMAIL_RE at every call site, which is not a reason to ship a throw. */
+  const applyFloor = (list) => list.filter(
+    (a) => floor.indexOf((String(a).split('@')[1] || '').toLowerCase()) !== -1);
 
   const base = {
     allowed: applyFloor(fallback),

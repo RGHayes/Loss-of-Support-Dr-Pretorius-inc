@@ -263,6 +263,14 @@ the reason recipients held in the console's database are acceptable at all: the
 worst a compromised console can do is move a form from one mailbox at the
 practice to another at the same practice.
 
+**A floor now exists whether or not you set this.** It used to not: `applyFloor`
+was the identity function when `RECIPIENT_DOMAINS` was unset, so there was no
+floor at all — while every document in this repo, including this one, said there
+was one. `send-form.js` and `form-recipients.js` now fall back to a built-in
+`DEFAULT_DOMAINS` of the practice's own domain and `iftfc.co.za`. Setting this
+variable REPLACES that list; it can never remove it. (`CARL-eco-006`,
+`CARL-eco-004`.)
+
 ### After every deploy, check the form can actually send
 
 A deploy can succeed, serve the form perfectly, pass every security header —
