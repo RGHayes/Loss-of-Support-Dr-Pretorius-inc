@@ -59,6 +59,56 @@ function replay(v) {
   return Object.assign({}, v, { source: 'stale-console', stale: true });
 }
 
+const RATE_WINDOW_MS = 60 * 60 * 1000;      // one hour
+const MAX_PER_IP = 60;                      // this is a page-load fetch, not a form submission
+const MAX_PER_INSTANCE = 600;
+const MAX_TRACKED_IPS = 5000;
+
+const ipHits = new Map();
+let instanceHits = [];
+
+const withinWindow = (times, now) => times.filter((t) => now - t < RATE_WINDOW_MS);
+
+function clientIp(event) {
+  const headers = event.headers || {};
+  return headers['x-nf-client-connection-ip']
+    || String(headers['x-forwarded-for'] || '').split(',')[0].trim()
+    || 'unknown';
+}
+
+function rateLimited(event, now) {
+  instanceHits = withinWindow(instanceHits, now);
+  if (instanceHits.length >= MAX_PER_INSTANCE) return true;
+
+  const ip = clientIp(event);
+  const hits = withinWindow(ipHits.get(ip) || [], now);
+  if (hits.length >= MAX_PER_IP) {
+    ipHits.set(ip, hits);
+    return true;
+  }
+
+  hits.push(now);
+  ipHits.set(ip, hits);
+  instanceHits.push(now);
+
+  if (ipHits.size > MAX_TRACKED_IPS) {
+    for (const [key, times] of ipHits) {
+      if (!withinWindow(times, now).length) ipHits.delete(key);
+      if (ipHits.size <= MAX_TRACKED_IPS) break;
+    }
+  }
+  return false;
+}
+/* CARL-drplos-005. The cache was set only on SUCCESS, so a console that was
+   refusing or unreachable was asked again on every single request — the one
+   state in which hammering it is least useful. A short negative cache asks once
+   per window instead. Deliberately much shorter than the success cache: a
+   recovered console should be noticed quickly.
+   `lastGood` is untouched. It is a different thing with a different job — the
+   last list the console actually gave us, which outlives any cache. */
+const NEG_CACHE_MS = 45 * 1000;
+let negCache = null;
+
 const parseList = (v) => String(v || '')
   .split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
 
@@ -161,8 +211,34 @@ function diagnose(rawTo, parsedCount, afterFloorCount, floorCount) {
   return problems.length ? problems : null;
 }
 
+/* CARL-drplos-005. One place that both returns a fallback AND remembers it for
+   a short window, so the two can never drift apart. */
+const replyFallback = (value) => {
+  negCache = { at: Date.now(), value: value };
+  return reply(200, value);
+};
+
 exports.handler = async (event) => {
   if (event.httpMethod !== 'GET') return reply(405, { error: 'Method not allowed.' });
+
+  /* CARL-drplos-005 / CARL-eco-008. Ported verbatim from the two sibling
+     builds that already had it — Carl's words: "a copy rather than a design".
+     Without it this endpoint had no limit at all, so a flood was amplified one
+     for one into outbound calls to the console, and the console's own rate limit
+     was reached on behalf of every form site at once. */
+  if (rateLimited(event, Date.now())) {
+    return {
+      statusCode: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store',
+        'X-Content-Type-Options': 'nosniff',
+        'Retry-After': '3600',
+      },
+      body: JSON.stringify({ error: 'Too many requests.' }),
+    };
+  }
+
 
   const floor = parseList(process.env.RECIPIENT_DOMAINS);
   const applyFloor = (list) => (floor.length
@@ -185,6 +261,9 @@ exports.handler = async (event) => {
   if (!consoleUrl || !configKey) return reply(200, base);
 
   if (cache && Date.now() - cache.at < CACHE_MS) return reply(200, cache.value);
+  if (negCache && Date.now() - negCache.at < NEG_CACHE_MS) {
+    return reply(200, negCache.value);
+  }
 
   try {
     /* Must be the same literal as the two in send-form.js — see the note at
@@ -197,12 +276,12 @@ exports.handler = async (event) => {
 
     if (!res.ok) {
       console.error('form-recipients: console refused, status=%d — using %s', res.status, lastGood ? 'the console\'s last known-good list (STALE)' : 'REPORT_TO_EMAIL');
-      return reply(200, lastGood ? replay(lastGood) : base);
+      return replyFallback(lastGood ? replay(lastGood) : base);
     }
 
     const body = await res.json();
     const list = Array.isArray(body && body.recipients) ? body.recipients : null;
-    if (!list) return reply(200, lastGood ? replay(lastGood) : base);
+    if (!list) return replyFallback(lastGood ? replay(lastGood) : base);
 
     const recipients = applyFloor(
       list
@@ -219,7 +298,7 @@ exports.handler = async (event) => {
     /* An empty list is a fault, not an instruction. Keep offering the
        environment variable's addresses rather than showing a claimant an
        empty dialog. */
-    if (!recipients.length) return reply(200, lastGood ? replay(lastGood) : base);
+    if (!recipients.length) return replyFallback(lastGood ? replay(lastGood) : base);
 
     const value = {
       recipients: recipients,
@@ -241,6 +320,6 @@ exports.handler = async (event) => {
     console.error('form-recipients: console unreachable (%s) — using %s',
       (err && err.message) || 'unknown',
       lastGood ? 'the console\'s last known-good list (STALE)' : 'REPORT_TO_EMAIL');
-    return reply(200, lastGood ? replay(lastGood) : base);
+    return replyFallback(lastGood ? replay(lastGood) : base);
   }
 };
