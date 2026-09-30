@@ -2465,7 +2465,10 @@
         recipientEmail: state.recipient,
         pdfFilename: lastPdf.filename,
         pdfBase64: base64,
-        website: $('website').value
+        website: $('website').value,
+        /* CARL-eco-017. state.isExample already existed for the PDF filename
+           (ALLISON-forms-015); it just never reached the console. */
+        isTest: state.isExample === true
       };
 
       window.fetch(SEND_ENDPOINT, {

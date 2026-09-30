@@ -400,7 +400,12 @@ let warnedNotReporting = false;
    the console has no column any of those could be written into, and this is
    the only place that could try. Failure here is ignored: a console that is
    down must never stop a claimant's form reaching the practice. */
-async function reportEvent(outcome, errorCode, bytes) {
+/* CARL-eco-017. `isTest` was the literal `false`, so a form site could never
+   mark a submission as a test and every demo send counted as real client intake.
+   Passed as a PARAMETER, not module state: a warm Netlify instance can serve
+   concurrent requests, and a shared mutable flag would eventually label somebody
+   else's submission a test. */
+async function reportEvent(outcome, errorCode, bytes, isTest) {
   const consoleUrl = String(process.env.IFTFC_CONSOLE_URL || '').replace(/\/+$/, '');
   const eventKey = process.env.IFTFC_EVENT_KEY;
   /* MUST match the REFERENCE shown on this form's page in the console, AND the
@@ -437,7 +442,7 @@ async function reportEvent(outcome, errorCode, bytes) {
         outcome: outcome,
         errorCode: errorCode || null,
         sizeBucket: sizeBucket(bytes || 0),
-        isTest: false
+        isTest: isTest === true
       })
     }), EVENT_TIMEOUT_MS);
 
@@ -475,6 +480,10 @@ exports.handler = async (event) => {
     return reply(405, { error: 'Method not allowed.' });
   }
 
+  /* False until the payload has been read, so events raised before that report
+     as real traffic rather than inheriting a flag nobody set. */
+  let isTestSubmission = false;
+
   /* CARL-drplos-006. Two narrow guards, before anything is parsed.
 
      (1) Content-Type must be application/json. A cross-site form POST cannot
@@ -507,7 +516,7 @@ exports.handler = async (event) => {
 
   // Reject oversized bodies before spending memory or CPU on them.
   if ((event.body || '').length > MAX_BODY_BYTES) {
-    await reportEvent('oversize', 'LOCAL_PDF_TOO_LARGE', 0);
+    await reportEvent('oversize', 'LOCAL_PDF_TOO_LARGE', 0, isTestSubmission);
     return reply(413, { error: 'The submission is too large.' });
   }
 
@@ -515,7 +524,7 @@ exports.handler = async (event) => {
     /* Not awaited: a blocked request must not hold an invocation open for the
        event timeout. Fire and forget, and only on the transition. */
     if (rateLimitIsNew) {
-      const p = reportEvent('rate_limited', 'LOCAL_RATE_LIMIT', 0);
+      const p = reportEvent('rate_limited', 'LOCAL_RATE_LIMIT', 0, isTestSubmission);
       if (p && typeof p.catch === 'function') p.catch(function () {});
     }
     return {
@@ -550,7 +559,7 @@ exports.handler = async (event) => {
       + 'Set it in Netlify > Site configuration > Environment variables, make sure the '
       + 'scope includes Functions, then redeploy.'
     );
-    await reportEvent('validation_rejected', 'LOCAL_CONFIG_MISSING', 0);
+    await reportEvent('validation_rejected', 'LOCAL_CONFIG_MISSING', 0, isTestSubmission);
     return reply(500, { error: 'Email delivery is not configured on the server.' });
   }
 
@@ -558,7 +567,7 @@ exports.handler = async (event) => {
      browser shows this instead of a generic failure, so a claimant is told to
      telephone rather than left retrying. */
   if (settings.paused) {
-    await reportEvent('validation_rejected', 'LOCAL_FORM_PAUSED', 0);
+    await reportEvent('validation_rejected', 'LOCAL_FORM_PAUSED', 0, isTestSubmission);
     return reply(503, {
       error: settings.pausedMessage
         || 'This form is temporarily unavailable. Please telephone the office.',
@@ -572,7 +581,12 @@ exports.handler = async (event) => {
   } catch (err) {
     return reply(400, { error: 'Could not read the submission.' });
   }
-
+  /* CARL-eco-017. Client-supplied, and that is acceptable here: the demo path is
+     passcode gated, the worst a false claim achieves is keeping a submission out
+     of a figure, and the document itself is already named
+     EXAMPLE-NOT-A-REAL-SUBMISSION. It is not a security control and is not
+     treated as one. */
+  isTestSubmission = payload.isTest === true;
   // Hidden field: a real person leaves it empty.
   if (clean(payload.website)) return reply(200, { ok: true });
 
@@ -583,7 +597,7 @@ exports.handler = async (event) => {
   const claimRef = headerSafe(payload.claimRef);
 
   if (!firstName || !surname) {
-    await reportEvent('validation_rejected', 'E400', 0);
+    await reportEvent('validation_rejected', 'E400', 0, isTestSubmission);
     return reply(400, { error: 'The form is missing the claimant’s name.' });
   }
 
@@ -594,7 +608,7 @@ exports.handler = async (event) => {
   const requested = clean(payload.recipientEmail).toLowerCase();
   const recipient = allowed.find((a) => a === requested);
   if (!recipient) {
-    await reportEvent('recipient_rejected', 'LOCAL_DOMAIN_REFUSED', 0);
+    await reportEvent('recipient_rejected', 'LOCAL_DOMAIN_REFUSED', 0, isTestSubmission);
     return reply(403, {
       error: 'That recipient is not one this form is allowed to send to. '
         + 'Please choose again, or telephone the office.',
@@ -603,12 +617,12 @@ exports.handler = async (event) => {
 
   const pdfBase64 = typeof payload.pdfBase64 === 'string' ? payload.pdfBase64 : '';
   if (!pdfBase64 || !/^[A-Za-z0-9+/]+={0,2}$/.test(pdfBase64)) {
-    await reportEvent('validation_rejected', 'LOCAL_PDF_INVALID', 0);
+    await reportEvent('validation_rejected', 'LOCAL_PDF_INVALID', 0, isTestSubmission);
     return reply(400, { error: 'The attached document was not readable.' });
   }
   const pdfBytes = Math.floor(pdfBase64.length * 0.75);
   if (pdfBytes > MAX_PDF_BYTES) {
-    await reportEvent('oversize', 'LOCAL_PDF_TOO_LARGE', pdfBytes);
+    await reportEvent('oversize', 'LOCAL_PDF_TOO_LARGE', pdfBytes, isTestSubmission);
     return reply(413, { error: 'The attached document is too large.' });
   }
 
@@ -622,7 +636,7 @@ exports.handler = async (event) => {
     header = '';
   }
   if (header.slice(0, 5) !== '%PDF-') {
-    await reportEvent('validation_rejected', 'LOCAL_PDF_INVALID', pdfBytes);
+    await reportEvent('validation_rejected', 'LOCAL_PDF_INVALID', pdfBytes, isTestSubmission);
     return reply(400, { error: 'The attached document was not a valid PDF.' });
   }
 
@@ -637,7 +651,8 @@ exports.handler = async (event) => {
     ? ((deceasedFirstName + ' ' + deceasedSurname).trim() + ' (deceased)')
     : (firstName + ' ' + surname);
 
-  const subject = 'Loss of Support Form – '
+  const subject = (isTestSubmission ? '[TEST] ' : '')
+    + 'Loss of Support Form – '
     + (claimRef ? claimRef + ' – ' : '')
     + matterName;
 
@@ -714,7 +729,7 @@ exports.handler = async (event) => {
          two cases get different advice. Neither reveals what the provider
          actually said. */
       if (res.status >= 400 && res.status < 500) {
-        await reportEvent('provider_error', providerCode(res.status), pdfBytes);
+        await reportEvent('provider_error', providerCode(res.status), pdfBytes, isTestSubmission);
         /* The provider's status code goes back as a short reference. It names
            no address, no key and no internal detail, but it is the difference
            between "the key is wrong" (401), "that sender or recipient is not
@@ -727,7 +742,7 @@ exports.handler = async (event) => {
           code: 'E' + res.status,
         });
       }
-      await reportEvent('provider_error', res.status >= 500 ? 'E502' : 'E500', pdfBytes);
+      await reportEvent('provider_error', res.status >= 500 ? 'E502' : 'E500', pdfBytes, isTestSubmission);
       return reply(502, { error: 'The form could not be sent just now. Please try again.' });
     }
   } catch (err) {
@@ -735,10 +750,10 @@ exports.handler = async (event) => {
        request it failed on, and that request holds the PDF. */
     console.error('send-form: the request to the email provider failed (%s).',
       (err && err.message) || 'unknown');
-    await reportEvent('provider_error', 'LOCAL_NETWORK', pdfBytes);
+    await reportEvent('provider_error', 'LOCAL_NETWORK', pdfBytes, isTestSubmission);
     return reply(502, { error: 'The form could not be sent just now. Please try again.' });
   }
 
-  await reportEvent('sent', null, pdfBytes);
+  await reportEvent('sent', null, pdfBytes, isTestSubmission);
   return reply(200, { ok: true });
 };
