@@ -31,6 +31,33 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# LAURA-los-003 / LAURA-sjaaccident-003. MIRRORS public/_headers, and it has to.
+# The rule went into _headers alone first and did NOTHING: the [[headers]] block
+# above with for = "/*" sets Cache-Control = "no-store", and netlify.toml wins
+# over _headers on a conflicting value. The fonts rule below works precisely
+# because it is in BOTH files. Verified live afterwards - the logo still came
+# back no-store from a successful deploy.
+#
+# must-revalidate, not max-age+immutable: the comment on the fonts rule is right
+# that no-store is partly why a deploy takes effect at once, and a logo is
+# exactly the asset a firm asks to have changed. With the ETag Netlify already
+# sends, a repeat visit gets a 304 and transfers nothing, and a new logo still
+# appears the moment it deploys.
+[[headers]]
+  for = "/apple-touch-icon.png"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/favicon-32.png"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/favicon.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
 [[redirects]]
   from = "/api/send-form"
   to = "/.netlify/functions/send-form"
