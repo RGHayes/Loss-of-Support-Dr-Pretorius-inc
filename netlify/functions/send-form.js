@@ -287,6 +287,8 @@ async function loadSettings() {
     allowed: applyFloor(fallback),
     paused: false,
     pausedMessage: '',
+    /* CARL-drplos-009: null means "the console said nothing", not "no limit". */
+    maxPdfMb: null,
     source: 'env'
   };
 
@@ -334,6 +336,13 @@ async function loadSettings() {
       allowed: fromConsole,
       paused: !!(body.form && body.form.status === 'paused'),
       pausedMessage: (body.form && String(body.form.pausedMessage || '').slice(0, 600)) || '',
+      /* CARL-drplos-009. The console has always SENT this and no form app has
+         ever read it, so the operator has been editing a control that governs
+         nothing. On app 5 it stopped being merely inert and started being
+         wrong: the console displayed 5 MB while the form enforced 4, so a
+         claimant with a 4.5 MB file was refused a submission the operator
+         believed they had allowed. */
+      maxPdfMb: (body.form && Number(body.form.maxPdfMb)) || null,
       source: 'console'
     };
     configCache = { at: Date.now(), value: value };
@@ -621,7 +630,16 @@ exports.handler = async (event) => {
     return reply(400, { error: 'The attached document was not readable.' });
   }
   const pdfBytes = Math.floor(pdfBase64.length * 0.75);
-  if (pdfBytes > MAX_PDF_BYTES) {
+  /* CARL-drplos-009. The console's value applies only where it is STRICTER than
+     the built-in cap — never wider. Same principle as RECIPIENT_DOMAINS: the
+     console may tighten what this site does and may never loosen it, so a
+     compromised console cannot raise a form's limits. A missing or nonsense
+     value leaves the built-in cap standing alone. */
+  const consoleMb = Number(settings && settings.maxPdfMb);
+  const effectiveMaxBytes = (consoleMb > 0)
+    ? Math.min(MAX_PDF_BYTES, Math.round(consoleMb * 1024 * 1024))
+    : MAX_PDF_BYTES;
+  if (pdfBytes > effectiveMaxBytes) {
     await reportEvent('oversize', 'LOCAL_PDF_TOO_LARGE', pdfBytes, isTestSubmission);
     return reply(413, { error: 'The attached document is too large.' });
   }
