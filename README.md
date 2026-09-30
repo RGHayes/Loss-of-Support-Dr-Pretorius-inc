@@ -227,12 +227,18 @@ own accident form and both SJA forms.
    | --- | --- | --- |
    | `RESEND_API_KEY` | yes | The Resend API key |
    | `REPORT_TO_EMAIL` | yes | Where forms go. Comma-separate for several |
-   | `RECIPIENT_DOMAINS` | strongly recommended | The domain floor — see below |
+   | `RECIPIENT_DOMAINS` | optional | Narrows the domain floor. A floor applies either
+     way — `DEFAULT_DOMAINS` in the code when this is unset — so leaving it blank does
+     NOT mean no floor. See below |
    | `REPORT_FROM_EMAIL` | **yes** | The sender. Must be on a domain verified in Resend — today that is `iftfc.co.za`. There is no fallback: the function refuses to start without it, on purpose (see below) |
    | `IFTFC_CONSOLE_URL` | no | The master console, if it is being used |
    | `IFTFC_CONFIG_KEY` | no | The console's `config:read` key |
    | `IFTFC_EVENT_KEY` | no | The console's `event:write` key |
-   | `IFTFC_FORM_SLUG` | no | Defaults to `dr-pretorius-loss-of-support` |
+   | `IFTFC_FORM_SLUG` | no | Defaults to `loss-of-support`, which is this form's
+     **Reference** in the console. **Not** `dr-pretorius-loss-of-support` — that is the
+     Engine identifier and the draft app id, a different thing. This row said the Engine
+     name until 30 September 2026; setting it would have made the console 404 and events
+     stop recording silently |
 
 3. Redeploy. **Netlify environment variables only take effect on a rebuild** —
    saving them in the dashboard changes nothing until the site builds again. If
