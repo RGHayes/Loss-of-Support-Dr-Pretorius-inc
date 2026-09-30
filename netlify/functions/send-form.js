@@ -339,6 +339,10 @@ async function loadSettings() {
 
   const base = {
     allowed: applyFloor(fallback),
+    /* The environment fallback has no ids - REPORT_TO_EMAIL is a list of
+       addresses and nothing more. An event from this path reports no recipient
+       and the console shows "not recorded". */
+    recipientIds: {},
     paused: false,
     pausedMessage: '',
     /* CARL-drplos-009: null means "the console said nothing", not "no limit". */
@@ -386,8 +390,21 @@ async function loadSettings() {
       return lastGood ? replay(lastGood) : base;
     }
 
+    /* RICHARD-2026-09-30. Which mailbox a form reached is now recorded in the
+       console (schema/12). The id is resolved HERE, server side, from the
+       address the claimant chose - the browser never sends one and therefore
+       cannot name a mailbox it was not offered. Console answers only: the
+       REPORT_TO_EMAIL fallback has no ids and reports none, which is the truth
+       rather than a gap. */
+    const recipientIds = {};
+    list.forEach((r) => {
+      const a = String((r && r.email) || '').trim().toLowerCase();
+      if (r && r.id && a) recipientIds[a] = String(r.id);
+    });
+
     const value = {
       allowed: fromConsole,
+      recipientIds: recipientIds,
       paused: !!(body.form && body.form.status === 'paused'),
       pausedMessage: (body.form && String(body.form.pausedMessage || '').slice(0, 600)) || '',
       /* CARL-drplos-009. The console has always SENT this and no form app has
@@ -468,7 +485,7 @@ let warnedNotReporting = false;
    Passed as a PARAMETER, not module state: a warm Netlify instance can serve
    concurrent requests, and a shared mutable flag would eventually label somebody
    else's submission a test. */
-async function reportEvent(outcome, errorCode, bytes, isTest) {
+async function reportEvent(outcome, errorCode, bytes, isTest, recipientId) {
   const consoleUrl = String(process.env.IFTFC_CONSOLE_URL || '').replace(/\/+$/, '');
   const eventKey = process.env.IFTFC_EVENT_KEY;
   /* MUST match the REFERENCE shown on this form's page in the console, AND the
@@ -505,7 +522,10 @@ async function reportEvent(outcome, errorCode, bytes, isTest) {
         outcome: outcome,
         errorCode: errorCode || null,
         sizeBucket: sizeBucket(bytes || 0),
-        isTest: isTest === true
+        isTest: isTest === true,
+        /* Omitted rather than sent as null when unknown, so this behaves
+           identically against a console that has not run schema/12 yet. */
+        ...(recipientId ? { recipientId: recipientId } : {})
       })
     }), EVENT_TIMEOUT_MS);
 
@@ -826,6 +846,8 @@ exports.handler = async (event) => {
     return reply(502, { error: 'The form could not be sent just now. Please try again.' });
   }
 
-  await reportEvent('sent', null, pdfBytes, isTestSubmission);
+  /* Resolved from the chosen address, never accepted from the browser. */
+  await reportEvent('sent', null, pdfBytes, isTestSubmission,
+                    (settings.recipientIds || {})[recipient]);
   return reply(200, { ok: true });
 };
